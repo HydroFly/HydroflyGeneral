@@ -1,3 +1,6 @@
 [submodule "SparkFun_BNO080_Arduino_Library"]
 	path = SparkFun_BNO080_Arduino_Library
 	url = https://github.com/sparkfun/SparkFun_BNO080_Arduino_Library
+[submodule "Adafruit_Python_ADS1x15"]
+	path = Adafruit_Python_ADS1x15
+	url = https://github.com/adafruit/Adafruit_Python_ADS1x15.git
