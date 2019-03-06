@@ -3,21 +3,27 @@
 
 import time
 import Adafruit_ADS1x15 
-#import GPIO
 import csv
 import board
 from time import sleep
 import maxSonarTTY
+import RPi.GPIO as GPIO
 
 
-### ************************************ ###
+### Define hardware interrupt 
+#Hardware setup: Button between pin 23 and ground. 
+#only some pins work. Hardware limitation.
+pin = 23
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+
 ### Define ADC interface 
 
 adc = Adafruit_ADS1x15.ADS1115()
 gain = 2/3 # gain factor for board, 2/3 can read up to 6V, 1 can read up to 4.096V
 
 
-### ************************************ ###
 ### Define ultrasonic sensor interface
 
 serialPort = "/dev/ttyAMA0"
@@ -25,6 +31,14 @@ maxRange = 5000  # change for 5m vs 10m sensor
 sleepTime = 0.01
 minMM = 9999
 maxMM = 0
+
+
+
+def interrupt_handler(channel):
+    print("Interrupt exception")
+    return 0
+
+GPIO.add_event_detect(pin, GPIO.RISING, callback=interrupt_handler, bouncetime=200)
 
 
 def voltToPressure(voltage):
