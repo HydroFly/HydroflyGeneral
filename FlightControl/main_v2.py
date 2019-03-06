@@ -36,7 +36,8 @@ maxMM = 0
 
 def interrupt_handler(channel):
     print("Interrupt exception")
-    return 0
+    global running
+    running = False
 
 GPIO.add_event_detect(pin, GPIO.RISING, callback=interrupt_handler, bouncetime=200)
 
@@ -110,9 +111,9 @@ def sessionTerminator():
 
 state = HydroflyState() 
 
-distance = 0
+running = True
 #Loop
-while True:
+while (running == True):
     sensorVal = adc.read_adc(1, gain)
     pressure = voltToPressure(valToVolt(sensorVal, gain))
     
