@@ -8,7 +8,8 @@ import csv
 from time import sleep
 import maxSonarTTY
 import RPi.GPIO as GPIO
-
+import datetime
+import os
 
 ### Define hardware interrupt 
 #Hardware setup: Button between pin 23 and ground. 
@@ -17,6 +18,15 @@ pin = 23
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
+
+#create the file name
+d=datetime.datetime.now()
+path= os.getcwd()+"/data/"
+filename= "data_"+str(d.month)+"_"+str(d.day)+"_"+str(d.hour)+"_"+str(d.minute)+".csv"
+#open the file
+datafile = open(path+filename,"w+")
+datafile.write("Hydrofly Data,Version 0,"+ str(d.month)+"/"+ str(d.day) + "/" +str(d.year) +"\n")
+datafile.write("Pressure 0,Pressure 1,Distance\n")
 
 ### Define ADC interface 
 
@@ -140,6 +150,8 @@ while (running == True):
 
     #print("pressure 0:", CurrentState.pressure[0], "distance:", CurrentState.orientation[2])
     print("pressure 0:", CurrentState.pressure[0], "Pressure 1:", CurrentState.pressure[1], "distance:", CurrentState.orientation[2])
-    sleep(0.01)
+    datafile.write(str(CurrentState.pressure[0]) + "," + str(CurrentState.pressure[1]) + "," + str(CurrentState.orientation[2])+ "\n")
+    #sleep(0.01)
 
 
+datafile.close()
