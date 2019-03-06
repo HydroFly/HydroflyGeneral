@@ -71,11 +71,31 @@ def checkArmed():
     
     return 0
 
-def initializeState():
-    return 0
+class HydroflyState:
+    'Class to hold our state'
+
+    def __init__(FlightMode, pressure, time, terminator, velocity, position, orientation):
+        self.FlightMode = 0 
+        self.pressure = [0, 0, 0] # p1, p2, p3
+        self.time = 0
+        self.terminator = terminator
+        self.velocity = [0, 0, 0] # x, y, z
+        self.position = [0, 0, 0] # x, y, z
+        self.orientation = [0, 0, 0] # phi, theta, psi, (roll, pitch, yaw?)
+        # initialize state here 
 
 def initializeInterfaces():
     return 0 
+
+
+class ModeController:
+    'Class to hold our Mode Controller'
+
+    def __init__(varx, vary):
+        self.varx = 1
+        self.vary = 2
+        # initialize state here 
+
 
 def updateState():
     return 0
@@ -87,6 +107,8 @@ def sessionTerminator():
     # I'll be back
     return 0
 
+
+state = HydroflyState() 
 
 #Loop
 while True:
