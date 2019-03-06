@@ -4,9 +4,10 @@ import RPi.GPIO as GPIO
 import time
 
 state = 0
+pin = 23
 
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(23, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 def interrupt_handler(channel):
     global state
@@ -19,7 +20,7 @@ def interrupt_handler(channel):
     else:
         state = 1
         print("State set to 1 by pin 23")
-GPIO.add_event_detect(23, GPIO.RISING, callback=interrupt_handler, bouncetime=200)
+GPIO.add_event_detect(pin, GPIO.RISING, callback=interrupt_handler, bouncetime=200)
 
 
 while (True):
