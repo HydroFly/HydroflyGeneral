@@ -4,7 +4,7 @@
 import time
 import Adafruit_ADS1x15 
 import csv
-import board
+#import board
 from time import sleep
 import maxSonarTTY
 import RPi.GPIO as GPIO
@@ -74,11 +74,11 @@ def checkArmed():
 class HydroflyState:
     'Class to hold our state'
 
-    def __init__(FlightMode, pressure, time, terminator, velocity, position, orientation):
+    def __init__(self):
         self.FlightMode = 0 
         self.pressure = [0, 0, 0] # p1, p2, p3
         self.time = 0
-        self.terminator = terminator
+        self.terminator = 0
         self.velocity = [0, 0, 0] # x, y, z
         self.position = [0, 0, 0] # x, y, z
         self.orientation = [0, 0, 0] # phi, theta, psi, (roll, pitch, yaw?)
@@ -110,6 +110,7 @@ def sessionTerminator():
 
 state = HydroflyState() 
 
+distance = 0
 #Loop
 while True:
     sensorVal = adc.read_adc(1, gain)
@@ -118,7 +119,6 @@ while True:
     distance = maxSonarTTY.measure(serialPort)
 
     print("pressure:", pressure, "distance:", distance)
-
     sleep(0.01)
 
 
