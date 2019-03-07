@@ -10,6 +10,7 @@ import maxSonarTTY
 import RPi.GPIO as GPIO
 import datetime
 import os
+import copy
 
 ### Define hardware interrupt 
 #Hardware setup: Button between pin 23 and ground. 
@@ -87,6 +88,7 @@ class HydroflyState:
     def __init__(self):
         self.FlightMode = 0 
         self.pressure = [0, 0, 0] # p1, p2, p3
+        self.theTime = time.time()
         self.currentTime = 0
         self.terminator = 0
         self.velocity = [0, 0, 0] # x, y, z
@@ -94,19 +96,21 @@ class HydroflyState:
         self.orientation = [0, 0, 0] # phi, theta, psi, (roll, pitch, yaw?)
         # initialize state here 
 
-    def updateState(self, flightmode, adc, gain, flag, serialPort):
+    def updateState(self, PreviousState, flightmode, adc, gain, flag, serialPort):
+        self.theTime = time.time()
+        dt = PreviousState.theTime - self.theTime
         self.FlightMode = flightmode
+
         self.pressure[0] = voltToPressure(valToVolt(adc.read_adc(0, gain), gain))
         self.pressure[1] = voltToPressure(valToVolt(adc.read_adc(1, gain), gain))
         self.pressure[2] = voltToPressure(valToVolt(adc.read_adc(2, gain), gain))
-        self.currentTime = 0
         self.terminator = flag
-        self.velocity[0] = 0
-        self.velocity[1] = 0
-        self.velocity[2] = 0
-        self.orientation[0] = 0
-        self.orientation[1] = 0
+        self.orientation[0] = 0.0
+        self.orientation[1] = 0.0
         self.orientation[2] = maxSonarTTY.measure(serialPort)
+        self.velocity[0] = 0.0
+        self.velocity[1] = 0.0
+        self.velocity[2] = ((self.orientation[2] - PreviousState.orientation[2])/dt)
         
 
 def initializeInterfaces():
@@ -122,8 +126,6 @@ class ModeController:
         # initialize state here 
 
 
-
-
 def modeController():
     return 0
 
@@ -132,26 +134,28 @@ def sessionTerminator():
     return 0
 
 
-CurrentState = HydroflyState() 
+CurrentState = HydroflyState()
 PreviousState = HydroflyState()
-PreviousState = CurrentState 
+PreviousState = copy.deepcopy(CurrentState)
 
 running = True
 #Loop
 
 flightmode = 1
 flag = 0
-while (running == True):
-    CurrentState.updateState(flightmode, adc, gain, flag, serialPort)
-    #sensorVal = adc.read_adc(1, gain)
-    #pressure = voltToPressure(valToVolt(sensorVal, gain))
-    
-    #distance = maxSonarTTY.measure(serialPort)
 
-    #print("pressure 0:", CurrentState.pressure[0], "distance:", CurrentState.orientation[2])
-    print("pressure 0:", CurrentState.pressure[0], "Pressure 1:", CurrentState.pressure[1], "distance:", CurrentState.orientation[2])
-    datafile.write(str(CurrentState.pressure[0]) + "," + str(CurrentState.pressure[1]) + "," + str(CurrentState.orientation[2])+ "\n")
-    #sleep(0.01)
+##need while true loop for calibration phase
+# once all sensors checked and armed, go out of loop
+# New CSV file?
+
+
+while (running == True):
+
+    CurrentState.updateState(PreviousState, flightmode, adc, gain, flag, serialPort)
+    print("pressure 0:", CurrentState.pressure[0], "Pressure 1:", CurrentState.pressure[1], "distance:", CurrentState.orientation[2], "VelocityZ: ", CurrentState.velocity[2], "dt: ")
+    #datafile.write(str(CurrentState.pressure[0]) + "," + str(CurrentState.pressure[1]) + "," + str(CurrentState.orientation[2])+ "\n")
+    PreviousState = copy.deepcopy(CurrentState)
+    sleep(0.01)
 
 
 datafile.close()

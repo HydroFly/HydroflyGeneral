@@ -8,6 +8,8 @@ import csv
 from time import sleep
 import maxSonarTTY
 import RPi.GPIO as GPIO
+import datetime
+import os
 import copy
 
 ### Define hardware interrupt 
@@ -17,6 +19,15 @@ pin = 23
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
+
+#create the file name
+d=datetime.datetime.now()
+path= os.getcwd()+"/data/"
+filename= "data_"+str(d.month)+"_"+str(d.day)+"_"+str(d.hour)+"_"+str(d.minute)+".csv"
+#open the file
+datafile = open(path+filename,"w+")
+datafile.write("Hydrofly Data,Version 0,"+ str(d.month)+"/"+ str(d.day) + "/" +str(d.year) +"\n")
+datafile.write("Pressure 0,Pressure 1,Distance\n")
 
 ### Define ADC interface 
 
@@ -30,6 +41,7 @@ maxRange = 5000  # change for 5m vs 10m sensor
 sleepTime = 0.01
 minMM = 9999
 maxMM = 0
+
 
 
 def interrupt_handler(channel):
@@ -77,43 +89,29 @@ class HydroflyState:
         self.FlightMode = 0 
         self.pressure = [0, 0, 0] # p1, p2, p3
         self.theTime = time.time()
+        self.currentTime = 0
         self.terminator = 0
         self.velocity = [0, 0, 0] # x, y, z
         self.position = [0, 0, 0] # x, y, z
         self.orientation = [0, 0, 0] # phi, theta, psi, (roll, pitch, yaw?)
         # initialize state here 
 
-#    def updateState(self,PreviousState, flightmode, adc, gain, flag, serialPort):
-#        self.theTime = time.time()
-#        dt =  PreviousState.theTime - self.theTime
-#
-#        self.FlightMode = flightmode
-#        self.pressure[0] = voltToPressure(valToVolt(adc.read_adc(0, gain), gain))
-#        self.pressure[1] = voltToPressure(valToVolt(adc.read_adc(1, gain), gain))
-#        self.pressure[2] = voltToPressure(valToVolt(adc.read_adc(2, gain), gain))
-#        self.theTime = 0
-#        self.terminator = flag
-#        self.velocity[0] = 0
-#        self.velocity[1] = 0
-#        self.velocity[2] = 0
-#        self.orientation[0] = 0
-#        self.orientation[1] = 0
-#        self.orientation[2] = maxSonarTTY.measure(serialPort)
-        
-    def updateState(self,PreviousState, flightmode, adc, gain, flag, serialPort):
+    def updateState(self, PreviousState, flightmode, adc, gain, flag, serialPort):
         self.theTime = time.time()
-        dt =  PreviousState.theTime - self.theTime
+        dt = PreviousState.theTime - self.theTime
         self.FlightMode = flightmode
-        self.pressure[0] = 0
-        self.pressure[1] = 0
-        self.pressure[2] = 0
+
+        self.pressure[0] = voltToPressure(valToVolt(adc.read_adc(0, gain), gain))
+        self.pressure[1] = voltToPressure(valToVolt(adc.read_adc(1, gain), gain))
+        self.pressure[2] = voltToPressure(valToVolt(adc.read_adc(2, gain), gain))
         self.terminator = flag
-        self.velocity[0] = 0
-        self.velocity[1] = 0
-        self.velocity[2] = 0
-        self.orientation[0] = 0
-        self.orientation[1] = 0
-        self.orientation[2] = 0
+        self.orientation[0] = 0.0
+        self.orientation[1] = 0.0
+        self.orientation[2] = maxSonarTTY.measure(serialPort)
+        self.velocity[0] = 0.0
+        self.velocity[1] = 0.0
+        self.velocity[2] = ((self.orientation[2] - PreviousState.orientation[2])/dt)
+        
 
 def initializeInterfaces():
     return 0 
@@ -127,6 +125,7 @@ class ModeController:
         self.vary = 2
         # initialize state here 
 
+
 def modeController():
     return 0
 
@@ -135,39 +134,28 @@ def sessionTerminator():
     return 0
 
 
-CurrentState = HydroflyState() 
+CurrentState = HydroflyState()
 PreviousState = HydroflyState()
 PreviousState = copy.deepcopy(CurrentState)
-#PreviousState = CurrentState
+
 running = True
 #Loop
 
 flightmode = 1
 flag = 0
 
-#currtime = time.time()
-#prevtime = currtime;
-
-#while(True):
-#    currtime = time.time()
-#    dt = currtime - prevtime
-#    print("currtime: ",currtime,"prevtime: ",prevtime, "dt: ",dt)
-#    prevtime = currtime
+##need while true loop for calibration phase
+# once all sensors checked and armed, go out of loop
+# New CSV file?
 
 
 while (running == True):
-    
+
     CurrentState.updateState(PreviousState, flightmode, adc, gain, flag, serialPort)
-    #sensorVal = adc.read_adc(1, gain)
-    #pressure = voltToPressure(valToVolt(sensorVal, gain))
-    
-    #distance = maxSonarTTY.measure(serialPort)
-
-    #print("pressure 0:", CurrentState.pressure[0], "distance:", CurrentState.orientation[2])
-    #print("pressure 0:", CurrentState.pressure[0], "Pressure 1:", CurrentState.pressure[1], "distance:", CurrentState.orientation[2])
-    dt = CurrentState.theTime - PreviousState.theTime
-    print( "Current Time: ", CurrentState.theTime, "Previous Time: ", PreviousState.theTime, "", dt) 
+    print("pressure 0:", CurrentState.pressure[0], "Pressure 1:", CurrentState.pressure[1], "distance:", CurrentState.orientation[2], "VelocityZ: ", CurrentState.velocity[2], "dt: ")
+    #datafile.write(str(CurrentState.pressure[0]) + "," + str(CurrentState.pressure[1]) + "," + str(CurrentState.orientation[2])+ "\n")
     PreviousState = copy.deepcopy(CurrentState)
-    
+    sleep(0.01)
 
 
+datafile.close()
