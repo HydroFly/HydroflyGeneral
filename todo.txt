@@ -1,0 +1,26 @@
+TODO March, 2019
+
+Review Software Diagram:
+
+-IMU raw data in
+
+DECIDE ON PINS TO BE USED.
+- BCM or BOARD convention.
+Assuming Board: 
+
+Use excel to map it out by number, physical locations, and uses.
+Emergency Switch: 16 (GPIO23)
+
+ADC: uses I2C? >> I2C: 3, 5, (GPIO 2, 3)
+Ultrasonic: SPI?
+IMU: uses SPI? 
+
+-------
+Make main.py a little cleaner
+Utilities.py?
+GPIOPinMapper.py? 
+- Have an external file that contains all pin definitions
+- Have an external file that contains State class definitions and member functions for updating each member
+
+
+-------

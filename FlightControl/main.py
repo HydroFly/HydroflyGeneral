@@ -152,6 +152,8 @@ flag = 0
 while (running == True):
 
     CurrentState.updateState(PreviousState, flightmode, adc, gain, flag, serialPort)
+
+
     print("pressure 0:", CurrentState.pressure[0], "Pressure 1:", CurrentState.pressure[1], "distance:", CurrentState.orientation[2], "VelocityZ: ", CurrentState.velocity[2], "dt: ")
     #datafile.write(str(CurrentState.pressure[0]) + "," + str(CurrentState.pressure[1]) + "," + str(CurrentState.orientation[2])+ "\n")
     PreviousState = copy.deepcopy(CurrentState)
