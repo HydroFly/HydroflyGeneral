@@ -1,0 +1,5 @@
+Board Numbering:
+12: Relay 4
+16: Relay 3
+18: Relay 2
+22: Relay 1

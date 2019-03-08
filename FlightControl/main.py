@@ -2,15 +2,17 @@
 #unfinished for now
 
 import time
-import Adafruit_ADS1x15 
 import csv
 #import board
 from time import sleep
 import maxSonarTTY
+import Adafruit_ADS1x15 
 import RPi.GPIO as GPIO
 import datetime
 import os
 import copy
+import utilities as utils
+
 
 ### Define hardware interrupt 
 #Hardware setup: Button between pin 23 and ground. 
@@ -42,32 +44,12 @@ sleepTime = 0.01
 minMM = 9999
 maxMM = 0
 
-
-
 def interrupt_handler(channel):
     print("Interrupt exception")
     global running
     running = False
 
 GPIO.add_event_detect(pin, GPIO.RISING, callback=interrupt_handler, bouncetime=200)
-
-
-def voltToPressure(voltage):
-    """ converts voltage from ADC to PSIA value"""
-    maxPress = 750.0
-    minPress = 10.0
-    vSource = 5.0 #voltage source to ADC
-    vSupplyPress = 5.0 #voltage supply to pressure sensor
-
-    psi = (maxPress-minPress)*voltage/.8/vSource - (maxPress-minPress)/8 + minPress
-    return psi
-
-def valToVolt(value, gain):
-    """ converts value returned from ADC into an actual voltage depending on gain setting"""
-    maxNum = 32768
-    v = ((4.096/gain) / float(maxNum)) * value
-    return v
-
 
 def checkArmed():
     #check terminator variable
@@ -101,9 +83,9 @@ class HydroflyState:
         dt = PreviousState.theTime - self.theTime
         self.FlightMode = flightmode
 
-        self.pressure[0] = voltToPressure(valToVolt(adc.read_adc(0, gain), gain))
-        self.pressure[1] = voltToPressure(valToVolt(adc.read_adc(1, gain), gain))
-        self.pressure[2] = voltToPressure(valToVolt(adc.read_adc(2, gain), gain))
+        self.pressure[0] = utils.voltToPressure(utils.valToVolt(adc.read_adc(0, gain), gain))
+        self.pressure[1] = utils.voltToPressure(utils.valToVolt(adc.read_adc(1, gain), gain))
+        self.pressure[2] = utils.voltToPressure(utils.valToVolt(adc.read_adc(2, gain), gain))
         self.terminator = flag
         self.orientation[0] = 0.0
         self.orientation[1] = 0.0
@@ -111,7 +93,7 @@ class HydroflyState:
         self.velocity[0] = 0.0
         self.velocity[1] = 0.0
         self.velocity[2] = ((self.orientation[2] - PreviousState.orientation[2])/dt)
-        
+ 
 
 def initializeInterfaces():
     return 0 
