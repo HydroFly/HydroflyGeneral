@@ -1,9 +1,6 @@
 #!/usr/bin/python3
-#unfinished for now
-
 import time
 import csv
-#import board
 from time import sleep
 import maxSonarTTY
 import Adafruit_ADS1x15 
@@ -12,7 +9,6 @@ import datetime
 import os
 import copy
 import utilities as utils
-
 
 ### Define hardware interrupt 
 #Hardware setup: Button between pin 23 and ground. 
