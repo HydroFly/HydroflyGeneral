@@ -13,7 +13,7 @@ from numpy import *
 #review all these parameters. Put in better place maybe?
 gravity = -9.81
 rho_water = 997
-pipe_height = 0.5
+pipe_height = 0.381
 pressure = 800 #psi. CHANGE TO METRIC!
 ue = sqrt(2 * (pressure / rho_water + gravity * pipe_height))
 dt = 0.02 #change to dt from time()
