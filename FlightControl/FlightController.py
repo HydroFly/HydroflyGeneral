@@ -44,14 +44,19 @@ class HydroflyVehicle:
     def ModeController(self, mode): #might not be optimum.
         if State.FlightMode == 1:
             #do something
+            pass
         elif State.FlightMode == 2:
+            pass
             #do something else
         elif State.FlightMode == 3:
             #do landing thing
+            pass
         elif State.FlightMode == 4:
             #be manually controlled
+            pass
         else:
             #abort
+            pass
                 
 
 class HydroflyState:
