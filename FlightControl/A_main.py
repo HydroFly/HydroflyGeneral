@@ -10,14 +10,16 @@ import os
 import copy
 import utilities as utils
 import FlightController as FC
+import numpy as np
 
 ### Define hardware interrupt 
 #Hardware setup: Button between pin 23 and ground. 
-#only some pins work. Hardware limitation.
 pin = 23
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
+pin2 = 21
+GPIO.setup(pin2, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 #create the file name
 d=datetime.datetime.now()
@@ -42,27 +44,58 @@ minMM = 9999
 maxMM = 0
 
 def interrupt_handler(channel):
-    print("Interrupt exception")
-    global running
-    running = False
+    if (channel == pin):
+        print("Interrupt exception", pin)
+        global running
+        running = False
+    elif (channel == pin2):
+        print("Interrupt exception", pin2)
+        global SwitchArmed
+        if (SwitchArmed == 1):
+            interrupt_handler(pin) #software interrupt? Not exactly but can be powerful
+        else:
+            SwitchArmed = 1
+
 
 GPIO.add_event_detect(pin, GPIO.RISING, callback=interrupt_handler, bouncetime=200)
+GPIO.add_event_detect(pin2, GPIO.RISING, callback=interrupt_handler, bouncetime=200)
+#use "threading module" for what I call "software interrupts"?
 
 CurrentState = FC.HydroflyState()
+CurrentState.initialization(serialPort)
+
 PreviousState = FC.HydroflyState()
 PreviousState = copy.deepcopy(CurrentState)
 
-running = True
 #Loop
-
-flightmode = 1
-flag = 0
 
 ##need while true loop for calibration phase
 # once all sensors checked and armed, go out of loop
 # New CSV file?
 
+TheVehicle = FC.HydroflyVehicle()
+flightmode = TheVehicle.FlightMode
+flag =0
+SwitchArmed = 0
+Armed = 0
+while(Armed == 0):
+    #CurrentState.updateState(PreviousState, flightmode, adc, gain, flag, serialPort)
+    print("Mode: ", TheVehicle.FlightMode,"P0:", CurrentState.pressure[0], "P1:", CurrentState.pressure[1], "Dist:", CurrentState.orientation[2], "VelZ: ", CurrentState.velocity[2])
+    PreviousState = copy.deepcopy(CurrentState)
 
+    Armed = np.prod(TheVehicle.ArmCheck(SwitchArmed, SwitchArmed, SwitchArmed, SwitchArmed))
+    print(Armed)
+    print(TheVehicle.Conditions)
+    if (Armed == 1):
+        TheVehicle.FlightMode = 1
+
+
+print("Out of Initialization Phase")
+sleep(0.5)
+
+running = True
+flightmode = TheVehicle.FlightMode
+flag = 0
 while (running == True):
     CurrentState.updateState(PreviousState, flightmode, adc, gain, flag, serialPort)
 
