@@ -32,8 +32,8 @@ GPIO.setup(gpio40, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 def interrupt_handler(channel):
     if (channel == gpio16):
         print("Interrupt exception: ", channel)
-        global running
-        running = False
+        global CurrentState
+        CurrentState.terminator = 1
     elif (channel == gpio40):
         print("Interrupt exception: ", channel)
         global SwitchArmed
@@ -84,7 +84,6 @@ PreviousState = FC.HydroflyState()
 PreviousState = copy.deepcopy(CurrentState)
 
 TheVehicle = FC.HydroflyVehicle()
-flag =0 #we dont need a flag variable. Flight mode should do the trick
 SwitchArmed = 0
 Armed = 0
 
@@ -98,7 +97,7 @@ while(TheVehicle.FlightMode == 0):
     print(TheVehicle.Conditions)
     if (Armed == 1):
         TheVehicle.FlightMode = 1
-        TheVehicle.ModeController() #how about a software interrupt that calls this function anytime FlightMode changes/is set
+        TheVehicle.ModeController(CurrentState) #how about a software interrupt that calls this function anytime FlightMode changes/is set
 
 
 print("Out of Initialization Phase")
@@ -107,12 +106,19 @@ sleep(0.5)
 running = True
 
 ### Create threads
-UpdateState_t1 = threading.Thread(target=CurrentState.updateState, args=(PreviousState, TheVehicle.FlightMode, adc, gain, flag, serialPort))
-CheckState_t2 = threading.Thread(target=CurrentState.CheckState, args=(TheVehicle))
+UpdateState_t1 = threading.Thread(target=CurrentState.updateState, args=(PreviousState, TheVehicle.FlightMode, adc, gain, serialPort))
+CheckState_t2 = threading.Thread(target=CurrentState.CheckState, args=(TheVehicle,))
 
-#UpdateState_t1.start()
+UpdateState_t1.start()
 CheckState_t2.start()
 
+while(CurrentState.terminator ==0):
+    print("Tertiary thread exists")
+    sleep(0.2)
+
+#UpdateState_t1.join()
+#CheckState_t2.join()
+"""
 while (running == True):
     CurrentState.updateState(PreviousState, TheVehicle.FlightMode, adc, gain, flag, serialPort)
 
@@ -123,5 +129,5 @@ while (running == True):
     #datafile.write(str(CurrentState.pressure[0]) + "," + str(CurrentState.pressure[1]) + "," + str(CurrentState.position[2])+ "\n")
     PreviousState = copy.deepcopy(CurrentState)
     sleep(0.01)
-
+"""
 datafile.close()

@@ -52,10 +52,11 @@ class HydroflyVehicle:
         #Duty_Cycle Adjustment to appropriate System Capability?
         return duty_cycle
     
-    def Abort(self):
+    def Abort(self, State):
+        State.terminator = 1
         print("Aborting! And does nothing for now =)")
 
-    def ModeController(self): #might not be optimum. Maybe make it an interrupt somehow?
+    def ModeController(self,State): #might not be optimum. Maybe make it an interrupt somehow?
         if self.FlightMode == 1:
             self.TargetHeight = 2 #aim for height of 2 inches for testing
             #PIDs already initialized in constructor
@@ -69,7 +70,8 @@ class HydroflyVehicle:
             #do landing thing
             pass
         elif self.FlightMode == 4:
-            Abort()
+            print("About to call abort from mode controler")
+            self.Abort(State)
             pass
         else:
             #abort
@@ -124,26 +126,35 @@ class HydroflyState:
         time.sleep(0.5)
 
 
-    def updateState(self, PreviousState, flightmode, adc, gain, flag, serialPort):
-        self.theTime = time.time()
-        dt = PreviousState.theTime = self.theTime
-        self.FlightMode = flightmode
+    def updateState(self, PreviousState, flightmode, adc, gain, serialPort):
+        while (self.terminator==0):
+            
+            self.theTime = time.time()
+            dt = PreviousState.theTime = self.theTime
+            self.FlightMode = flightmode
 
-        self.pressure[0] = utils.voltToPressure(utils.valToVolt(adc.read_adc(0, gain), gain))
-        self.pressure[1] = utils.voltToPressure(utils.valToVolt(adc.read_adc(1, gain), gain))
-        self.pressure[2] = utils.voltToPressure(utils.valToVolt(adc.read_adc(2, gain), gain))
-        self.terminator = flag
-        self.position[0] = 0.0
-        self.position[1] = 0.0
-        self.position[2] = maxSonarTTY.measure(serialPort) - self.heightCorr
-        self.velocity[0] = 0.0
-        self.velocity[1] = 0.0
-        self.velocity[2] = ((self.position[2] - PreviousState.position[2])/dt)
+            self.pressure[0] = utils.voltToPressure(utils.valToVolt(adc.read_adc(0, gain), gain))
+            self.pressure[1] = utils.voltToPressure(utils.valToVolt(adc.read_adc(1, gain), gain))
+            self.pressure[2] = utils.voltToPressure(utils.valToVolt(adc.read_adc(2, gain), gain))
+            self.position[0] = 0.0
+            self.position[1] = 0.0
+            self.position[2] = maxSonarTTY.measure(serialPort) - self.heightCorr
+            self.velocity[0] = 0.0
+            self.velocity[1] = 0.0
+            self.velocity[2] = ((self.position[2] - PreviousState.position[2])/dt)
+
+            print("Don't worry, I am updating too, honey! ", self.terminator)
 
     def CheckState(self, TheVehicle):
-        if (self.position[2] >= 2):
-            TheVehicle.FlightMode = 4
-            TheVehicle.ModeController()
-
+        while (self.terminator==0):
+            print("Position: ", self.position[2])
+            print("If you see this, you're not an idiot, Thomas.", self.terminator)
+            time.sleep(0.1)
+            if (self.position[2] >= 2):
+                TheVehicle.FlightMode = 4
+                TheVehicle.ModeController(self)
+                print("OMGFGOMGIOJMGIMGOMG")
+                print(self.terminator)
+        
         
 
