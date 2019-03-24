@@ -10,33 +10,55 @@ import os
 import copy
 import utilities as utils
 import FlightController as FC
+import numpy as np
+import threading 
 
 
-# main: Initilize everything
-    # utilities: ADC, ultrasonic, etc THOMAS
-    # logdata: calls function/process to log data CHLOE
-    # updatevalues: THOMAS
-        # updateState: calls functions to update values THOMAS
-    # processvalues: THOMAS/ADAM
-        # ModeController: based on these (& tracking state), sets flight modes and performs differently ADAM/THOMAS
-        # AbortController: decides redline conditions THOMAS
-            # makes call to abort if needed - pass value back to ModeController THOMAS
-    # predictvalues: calls function to predict values based on "phyzakks" because we ain't gonna fly THOMAS/ADAM
-    # setsystem: calls functions to set solenoid ADAM
-    # shutoff: calls function to shutoff system & finalize logging? ADAM
-# end WE PARTY:Q
 
-
+#import hardwareinterface as HWI
 
 ### Define hardware interrupt 
-#Hardware setup: Button between pin 23 and ground. 
-#only some pins work. Hardware limitation.
-pin = 23
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+#Hardware setup: Button between GPIO board pin 16 and ground. 
+#Hardware setup: Button between GPIO board pin 40 and ground. 
+
+GPIO.setmode(GPIO.BCM) #BCM naming convention instead of GPIO.board
+#variable names based on BOARD convention. pin number uses BCM
+gpio16 = 23
+GPIO.setup(gpio16, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+
+gpio40 = 21
+GPIO.setup(gpio40, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+
+def interrupt_handler(channel):
+    if (channel == gpio16):
+        print("Interrupt exception: ", channel)
+        global running
+        running = False
+    elif (channel == gpio40):
+        print("Interrupt exception: ", channel)
+        global SwitchArmed
+        if(SwitchArmed ==1):
+            interrupt_handler(gpio16)
+        else:
+            SwitchArmed = 1
+
+#load GPIO event detections
+def loadeventdetection():
+    GPIO.add_event_detect(gpio16, GPIO.RISING, callback=interrupt_handler, bouncetime=200)
+    GPIO.add_event_detect(gpio40, GPIO.RISING, callback=interrupt_handler, bouncetime=200)
+    print("Event Detection loaded. (Interrupts)")
 
 
-#create the file name
+loadeventdetection()
+
+
+### Create threads
+UpdateState_t1 = threading.Thread(target=CurrentState.updateState, args=(PreviousState, TheVehicle.FlightMode, adc, gain, flag, serialPort))
+CheckState_t2 = threading.Thread(target=CurrentState.checkState, args=(TheVehicle))
+
+
+
+### Create the File Name
 d=datetime.datetime.now()
 path= os.getcwd()+"/data/"
 filename= "data_"+str(d.month)+"_"+str(d.day)+"_"+str(d.hour)+"_"+str(d.minute)+".csv"
@@ -58,33 +80,45 @@ sleepTime = 0.01
 minMM = 9999
 maxMM = 0
 
-def interrupt_handler(channel):
-    print("Interrupt exception")
-    global running
-    running = False
-
-GPIO.add_event_detect(pin, GPIO.RISING, callback=interrupt_handler, bouncetime=200)
-
 CurrentState = FC.HydroflyState()
+CurrentState.initialization(serialPort)
+
 PreviousState = FC.HydroflyState()
 PreviousState = copy.deepcopy(CurrentState)
 
+TheVehicle = FC.HydroflyVehicle()
+flag =0 #we dont need a flag variable. Flight mode should do the trick
+SwitchArmed = 0
+Armed = 0
+
+while(TheVehicle.FlightMode == 0):
+    #CurrentState.updateState(PreviousState, TheVehicle.FlightMode, adc, gain, flag, serialPort)
+    print("Mode: ", TheVehicle.FlightMode,"P0:", CurrentState.pressure[0], "P1:", CurrentState.pressure[1], "Dist:", CurrentState.position[2], "VelZ: ", CurrentState.velocity[2])
+    PreviousState = copy.deepcopy(CurrentState)
+
+    Armed = np.prod(TheVehicle.ArmCheck(SwitchArmed, SwitchArmed, SwitchArmed, SwitchArmed))
+    print(Armed)
+    print(TheVehicle.Conditions)
+    if (Armed == 1):
+        TheVehicle.FlightMode = 1
+        TheVehicle.ModeController() #how about a software interrupt that calls this function anytime FlightMode changes/is set
+
+
+print("Out of Initialization Phase")
+sleep(0.5)
+
 running = True
-#Loop
-
-flightmode = 1
-flag = 0
-
-##need while true loop for calibration phase
-# once all sensors checked and armed, go out of loop
-# New CSV file?
-
 
 while (running == True):
-    CurrentState.updateState(PreviousState, flightmode, adc, gain, flag, serialPort)
+    #CurrentState.updateState(PreviousState, TheVehicle.FlightMode, adc, gain, flag, serialPort)
+    UpdateState_t1.start()
+    CheckState_t1.start()
 
-    print("pressure 0:", CurrentState.pressure[0], "Pressure 1:", CurrentState.pressure[1], "distance:", CurrentState.orientation[2], "VelocityZ: ", CurrentState.velocity[2], "dt: ")
-    #datafile.write(str(CurrentState.pressure[0]) + "," + str(CurrentState.pressure[1]) + "," + str(CurrentState.orientation[2])+ "\n")
+    dutycycle = TheVehicle.run(CurrentState) 
+    print("Flightmode",TheVehicle.FlightMode, "Height: ", CurrentState.position[2], "DutyCycle Command", dutycycle)
+
+#    print("pressure 0:", CurrentState.pressure[0], "Pressure 1:", CurrentState.pressure[1], "distance:", CurrentState.position[2], "VelocityZ: ", CurrentState.velocity[2], "dt: ")
+    #datafile.write(str(CurrentState.pressure[0]) + "," + str(CurrentState.pressure[1]) + "," + str(CurrentState.position[2])+ "\n")
     PreviousState = copy.deepcopy(CurrentState)
     sleep(0.01)
 
