@@ -69,10 +69,11 @@ class HydroflyVehicle:
             #do landing thing
             pass
         elif self.FlightMode == 4:
-            #be manually controlled
+            Abort()
             pass
         else:
             #abort
+            #be manually controlled IN THE FUTURE?
             pass
 
 
@@ -138,4 +139,11 @@ class HydroflyState:
         self.velocity[0] = 0.0
         self.velocity[1] = 0.0
         self.velocity[2] = ((self.position[2] - PreviousState.position[2])/dt)
+
+    def CheckState(self, TheVehicle):
+        if (self.position[2] >= 2):
+            TheVehicle.FlightMode = 4
+            TheVehicle.ModeController()
+
+        
 

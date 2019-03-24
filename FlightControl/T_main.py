@@ -52,9 +52,6 @@ def loadeventdetection():
 loadeventdetection()
 
 
-### Create threads
-UpdateState_t1 = threading.Thread(target=CurrentState.updateState, args=(PreviousState, TheVehicle.FlightMode, adc, gain, flag, serialPort))
-CheckState_t2 = threading.Thread(target=CurrentState.checkState, args=(TheVehicle))
 
 
 
@@ -109,10 +106,15 @@ sleep(0.5)
 
 running = True
 
+### Create threads
+UpdateState_t1 = threading.Thread(target=CurrentState.updateState, args=(PreviousState, TheVehicle.FlightMode, adc, gain, flag, serialPort))
+CheckState_t2 = threading.Thread(target=CurrentState.CheckState, args=(TheVehicle))
+
+#UpdateState_t1.start()
+CheckState_t2.start()
+
 while (running == True):
-    #CurrentState.updateState(PreviousState, TheVehicle.FlightMode, adc, gain, flag, serialPort)
-    UpdateState_t1.start()
-    CheckState_t1.start()
+    CurrentState.updateState(PreviousState, TheVehicle.FlightMode, adc, gain, flag, serialPort)
 
     dutycycle = TheVehicle.run(CurrentState) 
     print("Flightmode",TheVehicle.FlightMode, "Height: ", CurrentState.position[2], "DutyCycle Command", dutycycle)
