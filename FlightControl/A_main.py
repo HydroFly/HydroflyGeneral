@@ -68,8 +68,6 @@ sleepTime = 0.01
 minMM = 9999
 maxMM = 0
 
-#use "threading module" for what I call "software interrupts"?
-
 CurrentState = FC.HydroflyState()
 CurrentState.initialization(serialPort)
 
@@ -77,12 +75,12 @@ PreviousState = FC.HydroflyState()
 PreviousState = copy.deepcopy(CurrentState)
 
 TheVehicle = FC.HydroflyVehicle()
-flightmode = TheVehicle.FlightMode
-flag =0
+flag =0 #we dont need a flag variable. Flight mode should do the trick
 SwitchArmed = 0
 Armed = 0
-while(Armed == 0):
-    #CurrentState.updateState(PreviousState, flightmode, adc, gain, flag, serialPort)
+
+while(TheVehicle.FlightMode == 0):
+    #CurrentState.updateState(PreviousState, TheVehicle.FlightMode, adc, gain, flag, serialPort)
     print("Mode: ", TheVehicle.FlightMode,"P0:", CurrentState.pressure[0], "P1:", CurrentState.pressure[1], "Dist:", CurrentState.position[2], "VelZ: ", CurrentState.velocity[2])
     PreviousState = copy.deepcopy(CurrentState)
 
@@ -91,18 +89,16 @@ while(Armed == 0):
     print(TheVehicle.Conditions)
     if (Armed == 1):
         TheVehicle.FlightMode = 1
+        TheVehicle.ModeController() #how about a software interrupt that calls this function anytime FlightMode changes/is set
 
 
 print("Out of Initialization Phase")
 sleep(0.5)
 
 running = True
-flightmode = TheVehicle.FlightMode
-TheVehicle.ModeController()
-flag = 0
 
 while (running == True):
-    CurrentState.updateState(PreviousState, flightmode, adc, gain, flag, serialPort)
+    CurrentState.updateState(PreviousState, TheVehicle.FlightMode, adc, gain, flag, serialPort)
     
     dutycycle = TheVehicle.run(CurrentState) 
     print("Flightmode",TheVehicle.FlightMode, "Height: ", CurrentState.position[2], "DutyCycle Command", dutycycle)
