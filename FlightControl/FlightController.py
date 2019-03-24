@@ -4,25 +4,10 @@ import maxSonarTTY
 import Adafruit_ADS1x15 
 import utilities as utils
 from numpy import *
-#import custom PID object
 
-
-#Things to think about:
-# - Flightmode value location
-# - Flightmode triggering
-# - Flight mission profile definition location
-#review all these parameters. Put in better place maybe?
-
-#Is a modecontroller function necessary? Best Practice?
-#Where should abort function be?
-#Define threading for when redline conditions occur. aka: prod(conditions)/= 1
-
-
-#review values below cuz I couldn't be bothered to be accurate tonight
 gravity = -9.81
 rho_water = 997
 pipe_height = 0.381
-#pressure = 800 #psi. CHANGE TO METRIC!
 pressure = 5500000 #pascals
 ue = sqrt(2 * (pressure / rho_water + gravity * pipe_height))
 print(ue)
@@ -51,7 +36,7 @@ class HydroflyVehicle:
 
     def run(self, State):
 
-        height_cv = self.Height_PID.get_cv(self.TargetHeight, State.orientation[2])
+        height_cv = self.Height_PID.get_cv(self.TargetHeight, State.position[2])
         target_dv = 2 * (height_cv - State.velocity[2] * tuning_time)/(tuning_time ** 2)
 
         target_d_mass = State.mass_tot * exp((gravity * dt / ue) - target_dv / ue)
@@ -63,7 +48,6 @@ class HydroflyVehicle:
         elif duty_cycle >1:
             duty_cycle = 1;
         print("DutyCycle: ",duty_cycle, "target_dv: ",target_dv, "target_d_mass: ", target_d_mass)
-        #print("DutyCycle: ",duty_cycle, "height_cv: ",height_cv , "TargetHeight", self.TargetHeight, "State.Position", State.orientation[2] )
 
         #Duty_Cycle Adjustment to appropriate System Capability?
         return duty_cycle
@@ -148,10 +132,10 @@ class HydroflyState:
         self.pressure[1] = utils.voltToPressure(utils.valToVolt(adc.read_adc(1, gain), gain))
         self.pressure[2] = utils.voltToPressure(utils.valToVolt(adc.read_adc(2, gain), gain))
         self.terminator = flag
-        self.orientation[0] = 0.0
-        self.orientation[1] = 0.0
-        self.orientation[2] = maxSonarTTY.measure(serialPort) - self.heightCorr
+        self.position[0] = 0.0
+        self.position[1] = 0.0
+        self.position[2] = maxSonarTTY.measure(serialPort) - self.heightCorr
         self.velocity[0] = 0.0
         self.velocity[1] = 0.0
-        self.velocity[2] = ((self.orientation[2] - PreviousState.orientation[2])/dt)
+        self.velocity[2] = ((self.position[2] - PreviousState.position[2])/dt)
 

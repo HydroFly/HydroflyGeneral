@@ -1,6 +1,3 @@
-
-
-
 def voltToPressure(voltage):
     """ converts voltage from ADC to PSIA value"""
     maxPress = 750.0
