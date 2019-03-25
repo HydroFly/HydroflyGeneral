@@ -29,6 +29,10 @@ class HydroflyVehicle:
         self.Height_PID = PIDController(1,0,1,dt)
         self.Velocity_PID = PIDController(1,1,1, dt)
 
+        self.RedlinePressure = 1000 # psi
+        self.RedlineHeight = 3.0 # meters
+        self.RedlineOrientation = [5.0, 5.0, 5.0] # degrees, + or -
+
     def ArmCheck(self, HeightCheck, OrientationCheck, PressureCheck, SwitchCheck):
         self.conditions = [HeightCheck, OrientationCheck, PressureCheck, SwitchCheck]
         return self.conditions #returns 1 if all are good to go
