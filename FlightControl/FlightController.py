@@ -135,7 +135,7 @@ class HydroflyState:
         return heightCorr
 
 
-    def updateState(self, PreviousState, flightmode, adc, gain, serialPort):
+    def updateState(self, PreviousState, flightmode, adc, gain, serialPort, datafile):
         while (self.terminator==0):
             
             self.theTime = time.time()
@@ -151,6 +151,7 @@ class HydroflyState:
             self.velocity[0] = 0.0
             self.velocity[1] = 0.0
             self.velocity[2] = ((self.position[2] - PreviousState.position[2])/dt)
+            #self.logdata(datafile)
 
             print("Don't worry, I am updating too, honey! ", self.terminator)
 
@@ -166,4 +167,7 @@ class HydroflyState:
                 print(self.terminator)
         
         
+    def logdata(self,datafile):
+        print("About to log, baby!")
+        datafile.write(str(self.pressure[0]) + "," + str(self.pressure[1]) + "," + str(self.position[2])+ "\n")
 

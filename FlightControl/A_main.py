@@ -47,11 +47,10 @@ def loadeventdetection():
     GPIO.add_event_detect(gpio16, GPIO.RISING, callback=interrupt_handler, bouncetime=200)
     GPIO.add_event_detect(gpio40, GPIO.RISING, callback=interrupt_handler, bouncetime=200)
     print("Event Detection loaded. (Interrupts)")
-
-
 loadeventdetection()
 
-### Create the File Name
+
+### Create the File Name 
 d=datetime.datetime.now()
 path= os.getcwd()+"/data/"
 filename= "data_"+str(d.month)+"_"+str(d.day)+"_"+str(d.hour)+"_"+str(d.minute)+".csv"
@@ -60,13 +59,13 @@ datafile = open(path+filename,"w+")
 datafile.write("Hydrofly Data,Version 0,"+ str(d.month)+"/"+ str(d.day) + "/" +str(d.year) +"\n")
 datafile.write("Pressure 0,Pressure 1,Distance\n")
 
+
 ### Define ADC interface 
-
 adc = Adafruit_ADS1x15.ADS1115()
-
 gain = 2.0/3.0 # gain factor for board, 2/3 can read up to 6V, 1 can read up to 4.096V
-### Define ultrasonic sensor interface
 
+
+### Define ultrasonic sensor interface
 serialPort = "/dev/ttyAMA0"
 maxRange = 5000  # change for 5m vs 10m sensor
 sleepTime = 0.01
@@ -74,13 +73,16 @@ minMM = 9999
 maxMM = 0
 
 CurrentState = FC.HydroflyState(serialPort)
-
 PreviousState = FC.HydroflyState(serialPort)
 PreviousState = copy.deepcopy(CurrentState)
 
 TheVehicle = FC.HydroflyVehicle()
 SwitchArmed = 0
 Armed = 0
+
+print("Out of Initialization Phase")
+sleep(0.5)
+
 
 while(TheVehicle.FlightMode == 0):
     #CurrentState.updateState(PreviousState, TheVehicle.FlightMode, adc, gain, flag, serialPort)
@@ -95,13 +97,10 @@ while(TheVehicle.FlightMode == 0):
         TheVehicle.ModeController(CurrentState) #how about a software interrupt that calls this function anytime FlightMode changes/is set
 
 
-print("Out of Initialization Phase")
-sleep(0.5)
-
 running = True
 
 ### Create threads
-UpdateState_t1 = threading.Thread(target=CurrentState.updateState, args=(PreviousState, TheVehicle.FlightMode, adc, gain, serialPort))
+UpdateState_t1 = threading.Thread(target=CurrentState.updateState, args=(PreviousState, TheVehicle.FlightMode, adc, gain, serialPort, datafile))
 CheckState_t2 = threading.Thread(target=CurrentState.CheckState, args=(TheVehicle,))
 
 UpdateState_t1.start()
