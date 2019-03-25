@@ -56,11 +56,11 @@ class HydroflyVehicle:
         #Duty_Cycle Adjustment to appropriate System Capability?
         return duty_cycle
     
-    def Abort(self, State):
+    def abort(self, State):
         State.terminator = 1
         print("Aborting! And does nothing for now =)")
 
-    def ModeController(self,State): 
+    def mode_controller(self,State): 
         if self.FlightMode == 1: # ascent 
             self.TargetHeight = 2 #aim for height of 2 inches for testing
             #PIDs already initialized in constructor
@@ -71,7 +71,7 @@ class HydroflyVehicle:
             pass
         elif self.FlightMode == 4: # abort
             #print("About to call abort from mode controller")
-            self.Abort(State)
+            self.abort(State)
         else:
             pass
 
@@ -132,9 +132,9 @@ class HydroflyState:
             dt = PreviousState.theTime = self.theTime
             self.FlightMode = flightmode
 
-            self.pressure[0] = utils.voltToPressure(utils.valToVolt(adc.read_adc(0, gain), gain))
-            self.pressure[1] = utils.voltToPressure(utils.valToVolt(adc.read_adc(1, gain), gain))
-            self.pressure[2] = utils.voltToPressure(utils.valToVolt(adc.read_adc(2, gain), gain))
+            self.pressure[0] = utils.volt_to_pressure(utils.val_to_volt(adc.read_adc(0, gain), gain))
+            self.pressure[1] = utils.volt_to_pressure(utils.val_to_volt(adc.read_adc(1, gain), gain))
+            self.pressure[2] = utils.volt_to_pressure(utils.val_to_volt(adc.read_adc(2, gain), gain))
             self.position[0] = 0.0
             self.position[1] = 0.0
             self.position[2] = maxSonarTTY.measure(serialPort) - self.heightCorr
@@ -151,7 +151,7 @@ class HydroflyState:
             time.sleep(0.1)
             if (self.position[2] >= 2):
                 TheVehicle.FlightMode = 4
-                TheVehicle.ModeController(self)
+                TheVehicle.mode_controller(self)
         
     def log_data(self,datafile):
         print("About to log, baby!")
