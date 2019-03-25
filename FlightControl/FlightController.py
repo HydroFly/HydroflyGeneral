@@ -104,7 +104,7 @@ class PIDController:
 
 class HydroflyState:
     'Class to Hold and Calc. State Variables'
-    def __init__(self):
+    def __init__(self, serialPort):
         self.FlightMode = 0
         self.pressure = [0,0,0]
         self.theTime = time.time()
@@ -112,18 +112,23 @@ class HydroflyState:
         self.terminator = 0
         self.velocity = [0,0,0]
         self.position = [0,0,0]
+        
         self.orientation = [0,0,0]
-        self.heightCorr = 0 #height correction #will change to array once we get 3 ultrasonic sensors
+        self.heightCorr = self.initialization(serialPort)
+        
+        #height correction #will change to array once we get 3 ultrasonic sensors
         self.mass_tot = mass_dry + mass_water
 
     def initialization(self, serialPort):
-        print("Running Ultrasonic Sensor ",49, " times.")
+        print("Running Ultrasonic Sensor ",50, " times.")
+        heightCorr =0
         for x in range(0, 49):
-            self.heightCorr += maxSonarTTY.measure(serialPort)
-        self.heightCorr/=49
-        print(self.heightCorr)
+            heightCorr += maxSonarTTY.measure(serialPort)
+        heightCorr/=50
+        print(heightCorr)
         print("Height Initialized")
         time.sleep(0.5)
+        return heightCorr
 
 
     def updateState(self, PreviousState, flightmode, adc, gain, serialPort):
