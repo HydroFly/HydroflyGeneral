@@ -5,18 +5,18 @@ import Adafruit_ADS1x15
 import utilities as utils
 from numpy import *
 
+
+### DEFINE PROJECT CONSTANTS ### 
 gravity = -9.81
 rho_water = 997
 pipe_height = 0.381
 pressure = 5500000 #pascals
 ue = sqrt(2 * (pressure / rho_water + gravity * pipe_height))
-print(ue)
 dt = 0.02 #change to dt from time()
 nozzle_area = 0.3
 mass_water = 12
 mass_dry = 6
 tuning_time = 0.2 #can be estimated by how long each flight control cycle takes...? maybe?
-
 m_dot_max = 997*nozzle_area * ue
 
 
@@ -33,7 +33,7 @@ class HydroflyVehicle:
         self.RedlineHeight = 3.0 # meters
         self.RedlineOrientation = [5.0, 5.0, 5.0] # degrees, + or -
 
-    def ArmCheck(self, HeightCheck, OrientationCheck, PressureCheck, SwitchCheck):
+    def arm_check(self, HeightCheck, OrientationCheck, PressureCheck, SwitchCheck):
         self.conditions = [HeightCheck, OrientationCheck, PressureCheck, SwitchCheck]
         return self.conditions #returns 1 if all are good to go
             
@@ -60,26 +60,19 @@ class HydroflyVehicle:
         State.terminator = 1
         print("Aborting! And does nothing for now =)")
 
-    def ModeController(self,State): #might not be optimum. Maybe make it an interrupt somehow?
-        if self.FlightMode == 1:
+    def ModeController(self,State): 
+        if self.FlightMode == 1: # ascent 
             self.TargetHeight = 2 #aim for height of 2 inches for testing
             #PIDs already initialized in constructor
-
-            #do something
             pass
-        elif self.FlightMode == 2:
+        elif self.FlightMode == 2: # hover
             pass
-            #do something else
-        elif self.FlightMode == 3:
-            #do landing thing
+        elif self.FlightMode == 3: # descent
             pass
-        elif self.FlightMode == 4:
-            print("About to call abort from mode controler")
+        elif self.FlightMode == 4: # abort
+            #print("About to call abort from mode controller")
             self.Abort(State)
-            pass
         else:
-            #abort
-            #be manually controlled IN THE FUTURE?
             pass
 
 
@@ -116,11 +109,10 @@ class HydroflyState:
         self.terminator = 0
         self.velocity = [0,0,0]
         self.position = [0,0,0]
-        
         self.orientation = [0,0,0]
-        self.heightCorr = self.initialization(serialPort)
+        self.heightCorr = self.Initialization(serialPort)
         
-        #height correction #will change to array once we get 3 ultrasonic sensors
+        #height correction - will change to array once we get 3 ultrasonic sensors
         self.mass_tot = mass_dry + mass_water
 
     def initialization(self, serialPort):
@@ -129,13 +121,11 @@ class HydroflyState:
         for x in range(0, 49):
             heightCorr += maxSonarTTY.measure(serialPort)
         heightCorr/=50
-        print(heightCorr)
-        print("Height Initialized")
-        time.sleep(0.5)
+        print("Height At Initilization: ", heightCorr)
         return heightCorr
 
 
-    def updateState(self, PreviousState, flightmode, adc, gain, serialPort, datafile):
+    def update_state(self, PreviousState, flightmode, adc, gain, serialPort, datafile):
         while (self.terminator==0):
             
             self.theTime = time.time()
@@ -153,9 +143,8 @@ class HydroflyState:
             self.velocity[2] = ((self.position[2] - PreviousState.position[2])/dt)
             #self.logdata(datafile)
 
-            print("Don't worry, I am updating too, honey! ", self.terminator)
 
-    def CheckState(self, TheVehicle):
+    def check_state(self, TheVehicle):
         while (self.terminator==0):
             print("Position: ", self.position[2])
             print("If you see this, you're not an idiot, Thomas.", self.terminator)
@@ -163,11 +152,8 @@ class HydroflyState:
             if (self.position[2] >= 2):
                 TheVehicle.FlightMode = 4
                 TheVehicle.ModeController(self)
-                print("OMGFGOMGIOJMGIMGOMG")
-                print(self.terminator)
         
-        
-    def logdata(self,datafile):
+    def log_data(self,datafile):
         print("About to log, baby!")
         datafile.write(str(self.pressure[0]) + "," + str(self.pressure[1]) + "," + str(self.position[2])+ "\n")
 

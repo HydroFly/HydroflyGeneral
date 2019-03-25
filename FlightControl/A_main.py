@@ -49,17 +49,6 @@ def loadeventdetection():
     print("Event Detection loaded. (Interrupts)")
 loadeventdetection()
 
-
-### Create the File Name 
-d=datetime.datetime.now()
-path= os.getcwd()+"/data/"
-filename= "data_"+str(d.month)+"_"+str(d.day)+"_"+str(d.hour)+"_"+str(d.minute)+".csv"
-#open the file
-datafile = open(path+filename,"w+")
-datafile.write("Hydrofly Data,Version 0,"+ str(d.month)+"/"+ str(d.day) + "/" +str(d.year) +"\n")
-datafile.write("Pressure 0,Pressure 1,Distance\n")
-
-
 ### Define ADC interface 
 adc = Adafruit_ADS1x15.ADS1115()
 gain = 2.0/3.0 # gain factor for board, 2/3 can read up to 6V, 1 can read up to 4.096V
@@ -71,6 +60,17 @@ maxRange = 5000  # change for 5m vs 10m sensor
 sleepTime = 0.01
 minMM = 9999
 maxMM = 0
+
+### Create the File Name 
+d=datetime.datetime.now()
+path= os.getcwd()+"/data/"
+filename= "data_"+str(d.month)+"_"+str(d.day)+"_"+str(d.hour)+"_"+str(d.minute)+".csv"
+#open the file
+datafile = open(path+filename,"w+")
+datafile.write("Hydrofly Data,Version 0,"+ str(d.month)+"/"+ str(d.day) + "/" +str(d.year) +"\n")
+datafile.write("Pressure 0,Pressure 1,Distance\n")
+
+
 
 CurrentState = FC.HydroflyState(serialPort)
 PreviousState = FC.HydroflyState(serialPort)
@@ -110,18 +110,7 @@ while(CurrentState.terminator ==0):
     print("Tertiary thread exists")
     sleep(0.2)
 
-#UpdateState_t1.join()
-#CheckState_t2.join()
-"""
-while (running == True):
-    CurrentState.updateState(PreviousState, TheVehicle.FlightMode, adc, gain, flag, serialPort)
 
-    dutycycle = TheVehicle.run(CurrentState) 
-    print("Flightmode",TheVehicle.FlightMode, "Height: ", CurrentState.position[2], "DutyCycle Command", dutycycle)
 
-#    print("pressure 0:", CurrentState.pressure[0], "Pressure 1:", CurrentState.pressure[1], "distance:", CurrentState.position[2], "VelocityZ: ", CurrentState.velocity[2], "dt: ")
-    #datafile.write(str(CurrentState.pressure[0]) + "," + str(CurrentState.pressure[1]) + "," + str(CurrentState.position[2])+ "\n")
-    PreviousState = copy.deepcopy(CurrentState)
-    sleep(0.01)
-"""
+
 datafile.close()
