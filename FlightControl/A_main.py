@@ -82,7 +82,7 @@ sleep(0.5)
 
 ### Create threads ###
 #Starts State update and redline condition checking
-UpdateState_t1 = threading.Thread(target=CurrentState.update_state, args=(TheVehicle.flight_mode, adc, gain, serialPort, datafile))
+UpdateState_t1 = threading.Thread(target=CurrentState.update_state, args=(TheVehicle.flight_mode, adc, gain, serialPort, TheVehicle, datafile))
 check_state_t2 = threading.Thread(target=CurrentState.check_state, args=(TheVehicle,))
 print("State Updater and Checker Threads Created")
 sleep(0.5)
@@ -103,11 +103,17 @@ while(TheVehicle.flight_mode == 0):
     sleep(.2)
 
 
+#new thread that opens valve. State references it for calculation purposes.
+#solenoidcontrol_t3 = threading.Thread(target=TheVehicle.solenoidcontrol, args=(CurrentState.terminator,))
+#solenoidcontrol_t3.start()
+#print("Solenoid Control Activated! Run!")
+
 #Hardware Commands / Flight Mission
 while(CurrentState.terminator ==0):
-    dutycycle = TheVehicle.run(CurrentState)
-    print("FlightMode: ", TheVehicle.flight_mode, "Height: ", CurrentState.position[2], "DutyCycle Command: ", dutycycle)
-    sleep(0.5)
+    sleep(.5)
+    TheVehicle.run(CurrentState)
+    
+    print("FlightMode: ", TheVehicle.flight_mode, "Height: ", CurrentState.position[2], "DutyCycle Command: ", TheVehicle.time_open)
 
 
 datafile.close()

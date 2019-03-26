@@ -17,10 +17,11 @@ nozzle_diam = 0.006 # m (6 mm)
 nozzle_area = pi * ((nozzle_diam/2) ** 2)
 mass_water = 4.2 # kg
 mass_dry = 8.1 # kg
-tuning_time = 0.2 #can be estimated by how long each flight control cycle takes...? maybe?
 m_dot_max = 997 *nozzle_area * ue # mass flow rate, kg/s
 
 delta_t =0.2
+
+TEST_MODE =0
 
 class HydroflyVehicle:
     def __init__(self): #load a spec sheet instead?
@@ -36,6 +37,8 @@ class HydroflyVehicle:
         self.RedlineOrientation = [5.0, 5.0, 5.0] # degrees, + or -
 
         self.previousTime = time.time() #last time command was sent
+        self.dt = 0
+        self.time_open = 0
 
 #    def arm_check(self, HeightCheck, OrientationCheck, PressureCheck, SwitchCheck):
 #        self.conditions = [HeightCheck, OrientationCheck, PressureCheck, SwitchCheck]
@@ -43,34 +46,48 @@ class HydroflyVehicle:
             
 
     def run(self, State):
-        #instead of opening for fraction of dt, figure out 
-        #how to define certain time? (1second?)
-        #and figure out fraction of 1 second needed to for system to flow
-        #water out. aka a percentage.
-        #have something time this either with delay or something
-        #since we're having this in main while loop, maybe create a timer thread
-        #timer() is a thread already?? use that? 
-        #figure this out somehow.
-        #
-        #flexible/variable future-dt would work too. math should be the same
-
-        dt = time.time() - self.previousTime
+        self.dt = time.time() - self.previousTime
         height_cv = self.Height_PID.get_cv(self.TargetHeight, State.position[2])
-        target_dv = 2 * (height_cv - State.velocity[2] * tuning_time)/(tuning_time ** 2)
-
-        target_d_mass = State.mass_tot * exp((GRAVITY * dt / ue) - target_dv / ue)
-        m_dot_target = (State.mass_tot - target_d_mass) / dt
+        target_dv = 2 * (height_cv - State.velocity[2] * self.dt)/(self.dt ** 2)
+        target_d_mass = State.mass_tot * exp((GRAVITY * self.dt / ue) - target_dv / ue)
+        m_dot_target = (State.mass_tot - target_d_mass) / self.dt
         duty_cycle = (m_dot_target / m_dot_max)
         if duty_cycle < 0:
             duty_cycle = 0
         elif duty_cycle >1:
-            duty_cycle = 1;
+            duty_cycle = 1
+        
         #print("DutyCycle: ",duty_cycle, "target_dv: ",target_dv, "target_d_mass: ", target_d_mass, "dt : ", dt)
 
-        #Duty_Cycle Adjustment to appropriate System Capability?
         self.previousTime = time.time()
-        return duty_cycle
-    
+        self.time_open = duty_cycle*self.dt
+
+        ### Solenoid Control
+
+        #if (dt < self.time_open):
+        #   print("OPEN sesami!") 
+        #elif(dt >  
+        #   print("Close the darn SESAMI")
+        #   dt = 0
+           
+
+    ###Threading solenoid control? doesnt work
+    def solenoidcontrol(self, terminator):
+        prev_time = time.time()
+        current_time = time.time()
+        dt = 0
+        while (terminator == 0): #and self.conditions are good 
+            
+            ## embed a while loop to keep open? Close then set time_open or time left to open to 0
+            dt = time.time() - prev_time
+            print("OPEN Sesami!") #gpio pin set to high here for relay
+            if ( dt >= self.time_open):
+                print("Close the darn  SESAMI") #pin set to low
+                dt = 0 #resets counter
+                time.sleep(self.dt - self.time_open)
+                prev_time = current_time
+
+
     def abort(self, State):
         State.terminator = 1
         print("Aborting! And does nothing for now =)")
@@ -148,7 +165,7 @@ class HydroflyState:
         return height_corr
 
 
-    def update_state(self, flightmode, adc, gain, serialPort, datafile):
+    def update_state(self, flightmode, adc, gain, serialPort, TheVehicle, datafile):
         while (self.terminator==0):
             self.theTime= time.time()
             dt = time.time() - self.theTime_prev
@@ -163,9 +180,15 @@ class HydroflyState:
             self.velocity[0] = 0.0
             self.velocity[1] = 0.0
             self.velocity[2] = ((self.position[2] - self.position_prev[2])/dt)
+            if TEST_MODE == 1:
+                #opened = 1 or 0. referenced from relay commander 
+                mass_tot_new -= m_dot_max * dt * opened
+                dv = GRAVITY * dt + (ue * log(mass_tot / mass_tot_new))
+                self.velocity[2] += dv
+                self.position[2] = self.velocity[2]*dt
+
             self.position_prev = self.position
             self.theTime_prev = self.theTime
-
             #self.logdata(datafile)
 
     def check_state(self, TheVehicle):
