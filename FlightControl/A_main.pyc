@@ -70,7 +70,7 @@ datafile.write("Pressure 0,Pressure 1,Distance\n")
 print("Log File Created")
 
 CurrentState = FC.HydroflyState(serialPort)
-TheVehicle = FC.HydroflyVehicle(datafile) #pass datafile handle to some function. Might be better practice, rather than giving it to the constructor? unless multiple functions like update_state need access to the file
+TheVehicle = FC.HydroflyVehicle()
 print("State and Vehicle Objects Created")
 
 SwitchArmed = 0
