@@ -13,8 +13,6 @@ import FlightController as FC
 import numpy as np
 import threading 
 
-
-
 #import hardwareinterface as HWI
 
 ### Define hardware interrupt 
@@ -110,8 +108,6 @@ while(CurrentState.terminator ==0):
     dutycycle = TheVehicle.run(CurrentState)
     print("FlightMode: ", TheVehicle.flight_mode, "Height: ", CurrentState.position[2], "DutyCycle Command: ", dutycycle)
     sleep(0.5)
-
-
 
 
 datafile.close()

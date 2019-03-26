@@ -31,7 +31,7 @@ class HydroflyVehicle:
         self.Velocity_PID = PIDController(1,1,1, delta_t)
 
         self.RedlinePressure = 1000 # psi
-        self.RedlineHeight = 1.10 # meters
+        self.RedlineHeight = 3.5 # meters
         self.RedlineOrientation = [5.0, 5.0, 5.0] # degrees, + or -
 
         self.previousTime = time.time() #last time command was sent
@@ -42,6 +42,17 @@ class HydroflyVehicle:
             
 
     def run(self, State):
+        #instead of opening for fraction of dt, figure out 
+        #how to define certain time? (1second?)
+        #and figure out fraction of 1 second needed to for system to flow
+        #water out. aka a percentage.
+        #have something time this either with delay or something
+        #since we're having this in main while loop, maybe create a timer thread
+        #timer() is a thread already?? use that? 
+        #figure this out somehow.
+        #
+        #flexible/variable future-dt would work too. math should be the same
+
         dt = time.time() - self.previousTime
         height_cv = self.Height_PID.get_cv(self.TargetHeight, State.position[2])
         target_dv = 2 * (height_cv - State.velocity[2] * tuning_time)/(tuning_time ** 2)
@@ -68,7 +79,7 @@ class HydroflyVehicle:
             print("Still in calibration phase.")
         elif self.flight_mode == 1: # ascent 
 
-            self.TargetHeight = 2*0.0254 #aim for height of 2 inches for testing
+            self.TargetHeight = 2 #aim for height of 2 meters for testing
             #PIDs already initialized in constructor
             pass
         elif self.flight_mode == 2: # hover
@@ -92,6 +103,7 @@ class PIDController:
         self.dt = dt
         self.times_cleaned = 0
 
+    #cv: corrective value
     def get_cv(self, target, current): # ****feed that time value here
         error = target - current
         self.integral += error * self.dt
@@ -160,7 +172,7 @@ class HydroflyState:
         while (self.terminator==0):
             #print("Checking State")
             conditions[0] = self.position[2] < TheVehicle.RedlineHeight
-            conditions[1] = True
+            conditions[1] = (self.orientation[0] < TheVehicle.RedlineOrientation[0]) and (self.orientation[1] < TheVehicle.RedlineOrientation[1]) and (self.orientation[2] < TheVehicle.RedlineOrientation[2]) 
             conditions[2] = True
             conditions[3] = True
             #print(conditions, prod(conditions))
