@@ -69,14 +69,12 @@ filename= "data_"+str(d.month)+"_"+str(d.day)+"_"+str(d.hour)+"_"+str(d.minute)+
 datafile = open(path+filename,"w+")
 datafile.write("Hydrofly Data,Version 0,"+ str(d.month)+"/"+ str(d.day) + "/" +str(d.year) +"\n")
 datafile.write("Pressure 0,Pressure 1,Distance\n")
-
-
+print("Log File Created")
 
 CurrentState = FC.HydroflyState(serialPort)
-PreviousState = FC.HydroflyState(serialPort)
-PreviousState = copy.deepcopy(CurrentState)
-
 TheVehicle = FC.HydroflyVehicle()
+print("State and Vehicle Objects Created")
+
 SwitchArmed = 0
 Armed = 0
 
@@ -84,31 +82,34 @@ print("Out of Initialization Phase")
 sleep(0.5)
 
 
-while(TheVehicle.FlightMode == 0):
-    #CurrentState.updateState(PreviousState, TheVehicle.FlightMode, adc, gain, flag, serialPort)
-    print("Mode: ", TheVehicle.FlightMode,"P0:", CurrentState.pressure[0], "P1:", CurrentState.pressure[1], "Dist:", CurrentState.position[2], "VelZ: ", CurrentState.velocity[2])
-    PreviousState = copy.deepcopy(CurrentState)
-
-    Armed = np.prod(TheVehicle.ArmCheck(SwitchArmed, SwitchArmed, SwitchArmed, SwitchArmed))
-    print(Armed)
-    print(TheVehicle.Conditions)
-    if (Armed == 1):
-        TheVehicle.FlightMode = 1
-        TheVehicle.ModeController(CurrentState) #how about a software interrupt that calls this function anytime FlightMode changes/is set
-
-
-running = True
-
-### Create threads
-UpdateState_t1 = threading.Thread(target=CurrentState.updateState, args=(PreviousState, TheVehicle.FlightMode, adc, gain, serialPort, datafile))
-CheckState_t2 = threading.Thread(target=CurrentState.CheckState, args=(TheVehicle,))
+### Create threads ###
+#Starts State update and redline condition checking
+UpdateState_t1 = threading.Thread(target=CurrentState.update_state, args=(TheVehicle.flight_mode, adc, gain, serialPort, datafile))
+check_state_t2 = threading.Thread(target=CurrentState.check_state, args=(TheVehicle,))
+print("State Updater and Checker Threads Created")
+sleep(0.5)
 
 UpdateState_t1.start()
-CheckState_t2.start()
+check_state_t2.start()
+print("Threads Started")
+sleep(0.5)
 
+while(TheVehicle.flight_mode == 0):
+#    print("Mode: ", TheVehicle.flight_mode,"P0:", CurrentState.pressure[0], "P1:", CurrentState.pressure[1], "Dist:", CurrentState.position[2], "VelZ: ", CurrentState.velocity[2])
+    #Armed = np.prod(TheVehicle.arm_check(SwitchArmed, SwitchArmed, SwitchArmed, SwitchArmed))
+    print("System Currently Unarmed. Press Button to Arm when Ready.", CurrentState.terminator)
+    if (SwitchArmed == 1):
+        print("System Armed")
+        TheVehicle.flight_mode = 1
+        TheVehicle.mode_controller(CurrentState) #how about a software interrupt that calls this function anytime flight_mode changes/is set
+    sleep(.2)
+
+
+#Hardware Commands / Flight Mission
 while(CurrentState.terminator ==0):
-    print("Tertiary thread exists")
-    sleep(0.2)
+    dutycycle = TheVehicle.run(CurrentState)
+    print("FlightMode: ", TheVehicle.flight_mode, "Height: ", CurrentState.position[2], "DutyCycle Command: ", dutycycle)
+    sleep(0.5)
 
 
 

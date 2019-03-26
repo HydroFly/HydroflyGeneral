@@ -1,4 +1,4 @@
-def voltToPressure(voltage):
+def volt_to_pressure(voltage):
     """ converts voltage from ADC to PSIA value"""
     maxPress = 750.0
     minPress = 10.0
@@ -9,7 +9,7 @@ def voltToPressure(voltage):
     return psi
 
 
-def valToVolt(value, gain):
+def val_to_volt(value, gain):
     """ converts value returned from ADC into an actual voltage depending on gain setting"""
     maxNum = 32768
     v = ((4.096/gain) / float(maxNum)) * value
