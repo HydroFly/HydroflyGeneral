@@ -24,3 +24,42 @@ GPIOPinMapper.py?
 
 
 -------
+
+Things to Think about: 
+ - Flightmode value location
+ - Flightmode triggering
+ - Flight mission profile definition location
+review all these parameters. Find better place to put? 
+
+Is modecontroller function necessary? Best Practice? 
+Where vshould abort function be?
+Define threading for when redline conditions occur. AKA: prod(conditions) no longer equal 1
+
+review system specific values.
+
+
+---------------------------------------------
+Logging 
+review CSV file/logging procedure. One file? More than one? Trade study. Decide soon
+Make it a function that gets called by update state, the flight control, and maybe check state? 
+Also, must log termination/redline condition type before closing.
+Function must be easy to modify or flexible by nature as we increase the number of variables being recorded. 
+
+Example:
+Col1: Flight Mode
+Col2: Time Stamp (currentTime?)
+Col3: dt used
+Col4 ---- Col20: States
+Col21---- COl28: Command Calcs?
+
+print null characters for unused columns (instead of zeros)
+
+Being able to plot state vs time and command vs time on same graph can be a plus. If we go with multiple log files per run, is there an easy way to graph separate spreadhsheets in one on excel?
+
+
+---------------------------------------------
+Redline conditions to check for during initialization:
+ - Sensor Reading changes of a certain defined magnitude
+ - All 3 sensors not giving same value
+
+
