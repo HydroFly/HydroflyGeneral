@@ -10,17 +10,18 @@ from numpy import *
 GRAVITY = -9.81
 RHO_WATER = 997
 pipe_height = 0.381
-pressure = 5500000 #pascals
+pressure = 5515806 #pascals (800 psi)
 ue = sqrt(2 * (pressure / RHO_WATER + GRAVITY * pipe_height))
 #dt = 0.02 #change to dt from time()
-nozzle_diam = 0.01
+nozzle_diam = 0.006 # m (6 mm)
 nozzle_area = pi * ((nozzle_diam/2) ** 2)
-mass_water = 12
-mass_dry = 6
+mass_water = 4.2 # kg
+mass_dry = 8.1 # kg
 tuning_time = 0.2 #can be estimated by how long each flight control cycle takes...? maybe?
-m_dot_max = 997 *nozzle_area * ue
+m_dot_max = 997 *nozzle_area * ue # mass flow rate, kg/s
 
 delta_t =0.2
+
 class HydroflyVehicle:
     def __init__(self): #load a spec sheet instead?
         self.flight_mode = 0
@@ -36,9 +37,9 @@ class HydroflyVehicle:
 
         self.previousTime = time.time() #last time command was sent
 
-    def arm_check(self, HeightCheck, OrientationCheck, PressureCheck, SwitchCheck):
-        self.conditions = [HeightCheck, OrientationCheck, PressureCheck, SwitchCheck]
-        return self.conditions #returns 1 if all are good to go
+#    def arm_check(self, HeightCheck, OrientationCheck, PressureCheck, SwitchCheck):
+#        self.conditions = [HeightCheck, OrientationCheck, PressureCheck, SwitchCheck]
+#        return self.conditions #returns 1 if all are good to go
             
 
     def run(self, State):
