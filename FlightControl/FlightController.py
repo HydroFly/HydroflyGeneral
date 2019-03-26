@@ -23,7 +23,8 @@ m_dot_max = 997 *nozzle_area * ue # mass flow rate, kg/s
 delta_t =0.2
 
 class HydroflyVehicle:
-    def __init__(self): #load a spec sheet instead?
+    def __init__(self,openedFile): #load a spec sheet instead?
+        datafile = openedFile #sets up the file to add data
         self.flight_mode = 0
         self.TargetHeight = 0
         self.Conditions = [0,0,0,0]
@@ -64,11 +65,12 @@ class HydroflyVehicle:
         if duty_cycle < 0:
             duty_cycle = 0
         elif duty_cycle >1:
-            duty_cycle = 1;
+            duty_cycle = 1
         #print("DutyCycle: ",duty_cycle, "target_dv: ",target_dv, "target_d_mass: ", target_d_mass, "dt : ", dt)
 
         #Duty_Cycle Adjustment to appropriate System Capability?
         self.previousTime = time.time()
+        
         return duty_cycle
     
     def abort(self, State):
@@ -120,7 +122,8 @@ class PIDController:
 
 class HydroflyState:
     'Class to Hold and Calc. State Variables'
-    def __init__(self, serialPort):
+    def __init__(self, serialPort,openedFile):
+        datafile = openedFile
         self.theTime_prev = time.time()
         self.position_prev = [0,0,0]
         self.flight_mode_prev = 0
@@ -165,8 +168,8 @@ class HydroflyState:
             self.velocity[2] = ((self.position[2] - self.position_prev[2])/dt)
             self.position_prev = self.position
             self.theTime_prev = self.theTime
-
-            #self.logdata(datafile)
+            
+            self.datafile.write(","+self.theTime+","+dt+","+self.position[0]+","+self.position[1]+","+self.position[2]+","+self.velocity[0]+","+self.velocity[1]+","+self.velocity[2]+","+self.pressure[0]+","+self.pressure[1]+","+self.pressure[2]+"\n")
 
     def check_state(self, TheVehicle):
         conditions = [True, True, True, True] #instantiate local variable
