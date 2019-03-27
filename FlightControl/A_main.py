@@ -128,7 +128,7 @@ while(CurrentState.terminator ==0):
 
     GPIO.output(gpio37, TheVehicle.run(CurrentState))
     
-    print("FlightMode: ", TheVehicle.flight_mode, "Height: ", CurrentState.position[2], "DutyCycle Command: ", TheVehicle.time_open)
+    #print("FlightMode: ", TheVehicle.flight_mode, "Height: ", CurrentState.position[2], "DutyCycle Command: ", TheVehicle.time_open)
 
 
 datafile.close()

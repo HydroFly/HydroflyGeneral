@@ -17,18 +17,18 @@ nozzle_diam = 0.006 # m (6 mm)
 nozzle_area = pi * ((nozzle_diam/2) ** 2)
 mass_water = 4.2 # kg
 mass_dry = 8.1 # kg
+global m_dot_max
 m_dot_max = 997 *nozzle_area * ue # mass flow rate, kg/s
 
-delta_t =0.2
+delta_t =0.25
 
-TEST_MODE =0
-
-
+print("\t *** Select Mode: ***")
+print("\t 0_ Sensor Data")
+print("\t 1_ TestMode; simulation.\n")
+TEST_MODE = int(input("Enter Mode Number: "))
 #GPIO.setmode(GPIO.BCM)
 #gpio37 = 13
 #GPIO.setup(gpio37, GPIO.OUT, initial=GPIO.LOW)
-
-
 
 
 class HydroflyVehicle:
@@ -59,7 +59,7 @@ class HydroflyVehicle:
 
     def run(self, State):
         #self.dt = time.time() - self.previousTime
-        self.dt = 0.5 # look half a second into the future, spooky
+        self.dt = 0.25 # look half a second into the future, spooky
         height_cv = self.Height_PID.get_cv(self.TargetHeight, State.position[2])
         target_dv = 2 * (height_cv - State.velocity[2] * self.dt)/(self.dt ** 2)
         target_d_mass = State.mass_tot * exp((GRAVITY * self.dt / ue) - target_dv / ue)
@@ -70,38 +70,27 @@ class HydroflyVehicle:
         elif duty_cycle >1:
             duty_cycle = 1
 
+#####SOMETHING IS MESSED UP HERE. I THINK TIME THAT WE REFERENCE ISNT UPDATING CORRECTLY. REVIEW ALGORITHM.
+
         self.previousTime = time.time() # when was run() called last
         self.time_open = duty_cycle*self.dt
         self.time_openUntil = time.time() + self.time_open # update clock value on when we should close solenoid 
-        print("Time remaining: ", self.time_open)
+        #print("Time remaining: ", self.time_open)
         if(State.solenoid_state == False and (time.time() <= self.time_openUntil)): 
-            #GPIO.output(gpio37, True)
+            ##GPIO.output(gpio37, True)
             State.solenoid_state = True
             State.solenoid_change_time = time.time()
-            print("LED ON")
+            #print("LED ON")
         elif(time.time() <= self.time_openUntil):
             State.solenoid_change_time = time.time()
-            print("LED ON (already)")
+            #print("LED ON (already)")
         else:
-            #GPIO.output(gpio37, False)
+            ##GPIO.output(gpio37, False)
             State.solenoid_state = False
             State.solenoid_change_time = time.time()
-            print("LED OFF")
+            #print("LED OFF")
         time.sleep(self.time_open)
         return State.solenoid_state
-
-
-
-
-###########################################           
-    #syntactically, this function works (uncomment from main)
-    #sadly, it doesn't work correctly because of timing? other threads don't jump in as quickly as we'd like. 
-    #I would have expected it to open and close for the same amount of time given stationary sensor setup. However, it open-closes, after first loop.
-    #@thomas, lemme know what you think.
-    #also, time() calls are getting a little too messy. Might be an easier way to do this? 
-    #We should figure out how to keep valve open while still running other threads and also have this thread jump back in to close the valve once time is up, or refernce run() to see if it should keep the valve open for longer.
-
-###########################################
 
 ###Threading solenoid control? doesnt work
 #    def solenoidcontrol(self, terminator):
@@ -124,16 +113,20 @@ class HydroflyVehicle:
         print("Aborting! And does nothing for now =)")
 
     def mode_controller(self,State): 
+
         if self.flight_mode == 0:
             print("Still in calibration phase.")
         elif self.flight_mode == 1: # ascent 
 
-            self.TargetHeight = 0.5 #aim for height of 2 meters for testing
+            self.TargetHeight = 2.0 #aim for height of 2 meters for testing
             #PIDs already initialized in constructor
             pass
         elif self.flight_mode == 2: # hover
+
+
             pass
         elif self.flight_mode == 3: # descent
+            self.TargetHeight = 0.0
             pass
         elif self.flight_mode == 4: # abort
             #print("About to call abort from mode controller")
@@ -188,13 +181,19 @@ class HydroflyState:
 
         #height correction - will change to array once we get 3 ultrasonic sensors
         self.mass_tot = mass_dry + mass_water
-        
+
+        self.position_model = [0,0,0]
+        self.velocity_model = [0,0,0]
+        self.mass_water_model = mass_water
+        self.pressure_model = [0,0,0] #calculated later by pv=nrt
+
+
     def initialization(self, serialPort):
-        print("Running Ultrasonic Sensor ",50, " times.")
+        print("Running Ultrasonic Sensor ",10, " times.")
         height_corr =0
-        for x in range(0, 49):
+        for x in range(0, 9):
             height_corr += maxSonarTTY.measure(serialPort)
-        height_corr/=50
+        height_corr/=10
         print("Height At Initilization: ", height_corr)
         return height_corr
 
@@ -208,21 +207,39 @@ class HydroflyState:
             self.pressure[0] = utils.volt_to_pressure(utils.val_to_volt(adc.read_adc(0, gain), gain))
             self.pressure[1] = utils.volt_to_pressure(utils.val_to_volt(adc.read_adc(1, gain), gain))
             self.pressure[2] = utils.volt_to_pressure(utils.val_to_volt(adc.read_adc(2, gain), gain))
-            self.position[0] = 0.0
-            self.position[1] = 0.0
-            self.position[2] = 0.0254*(maxSonarTTY.measure(serialPort) - self.height_corr)
-            self.velocity[0] = 0.0
-            self.velocity[1] = 0.0
-            self.velocity[2] = ((self.position[2] - self.position_prev[2])/dt)
-            if TEST_MODE == 1:
-                #opened = 1 or 0. referenced from relay commander 
-                mass_tot_new -= m_dot_max * dt * opened
-                dv = GRAVITY * dt + (ue * log(mass_tot / mass_tot_new))
-                self.velocity[2] += dv
-                self.position[2] = self.velocity[2]*dt
+            if (TEST_MODE == 0):
+                self.position[0] = 0.0
+                self.position[1] = 0.0
+                self.position[2] = 0.0254*(maxSonarTTY.measure(serialPort) - self.height_corr)
+                self.velocity[0] = 0.0
+                self.velocity[1] = 0.0
+                self.velocity[2] = ((self.position[2] - self.position_prev[2])/dt)
+            elif (TEST_MODE == 1):
+                self.mass_water_model -= m_dot_max * dt * self.solenoid_state
+                mass_tot_new = self.mass_tot - m_dot_max * dt * self.solenoid_state
+                if (self.mass_water_model <=0):
+                    print("Out of Water")
+                    self.terminator = 1
+                    mass_tot_new = mass_dry
+                dv = GRAVITY * dt + (ue * log(self.mass_tot / mass_tot_new))
+                self.mass_tot = mass_tot_new
+
+                self.velocity_model[2] += dv
+                self.position_model[2] = self.velocity_model[2]*dt
+
+                if (self.position_model[2] <= 0):
+                    self.velocity_model[2] = 0 #review algorithm order of this assignment
+                    self.position_model[2] = 0
+
+                self.velocity[2] = self.velocity_model[2]
+                self.position[2] = self.position_model[2]
+
+
 
             self.position_prev = self.position
             self.theTime_prev = self.theTime
+
+            print("velocity: ", self.velocity[2],  "height ", self.position[2])
             #currently being coded by Chloe
             #datafile.write(","+self.theTime+","+dt+","+self.position[0]+","+self.position[1]+","+self.position[2]+","+self.velocity[0]+","+self.velocity[1]+","+self.velocity[2]+","+self.pressure[0]+","+self.pressure[1]+","+self.pressure[2]+"\n")
             #self.logdata(datafile)
