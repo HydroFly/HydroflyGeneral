@@ -4,7 +4,7 @@ import maxSonarTTY
 import Adafruit_ADS1x15 
 import utilities as utils
 from numpy import *
-
+#import RPi.GPIO as GPIO
 
 ### DEFINE PROJECT CONSTANTS ### 
 GRAVITY = -9.81
@@ -23,6 +23,14 @@ delta_t =0.2
 
 TEST_MODE =0
 
+
+#GPIO.setmode(GPIO.BCM)
+#gpio37 = 13
+#GPIO.setup(gpio37, GPIO.OUT, initial=GPIO.LOW)
+
+
+
+
 class HydroflyVehicle:
     def __init__(self,openedFile): #load a spec sheet instead?
         datafile = openedFile #sets up the file to add data. Handler
@@ -39,7 +47,10 @@ class HydroflyVehicle:
 
         self.previousTime = time.time() #last time command was sent
         self.dt = 0
-        self.time_open = 0
+        self.solenoid_change_time = 0 # last time solenoid valve condition changed
+
+        self.solenoid_delay = 100 #time for solenoid to open or close (ms)
+
 
 #    def arm_check(self, HeightCheck, OrientationCheck, PressureCheck, SwitchCheck):
 #        self.conditions = [HeightCheck, OrientationCheck, PressureCheck, SwitchCheck]
@@ -47,7 +58,8 @@ class HydroflyVehicle:
             
 
     def run(self, State):
-        self.dt = time.time() - self.previousTime
+        #self.dt = time.time() - self.previousTime
+        self.dt = 0.5 # look half a second into the future, spooky
         height_cv = self.Height_PID.get_cv(self.TargetHeight, State.position[2])
         target_dv = 2 * (height_cv - State.velocity[2] * self.dt)/(self.dt ** 2)
         target_d_mass = State.mass_tot * exp((GRAVITY * self.dt / ue) - target_dv / ue)
@@ -58,16 +70,29 @@ class HydroflyVehicle:
         elif duty_cycle >1:
             duty_cycle = 1
 
-        self.previousTime = time.time()
+        self.previousTime = time.time() # when was run() called last
         self.time_open = duty_cycle*self.dt
+        self.time_openUntil = time.time() + self.time_open # update clock value on when we should close solenoid 
+        print("Time remaining: ", self.time_open)
+        if(State.solenoid_state == False and (time.time() <= self.time_openUntil)): 
+            #GPIO.output(gpio37, True)
+            State.solenoid_state = True
+            State.solenoid_change_time = time.time()
+            print("LED ON")
+        elif(time.time() <= self.time_openUntil):
+            State.solenoid_change_time = time.time()
+            print("LED ON (already)")
+        else:
+            #GPIO.output(gpio37, False)
+            State.solenoid_state = False
+            State.solenoid_change_time = time.time()
+            print("LED OFF")
+        time.sleep(self.time_open)
+        return State.solenoid_state
 
-        ### Solenoid Control
 
-        #if (dt < self.time_open):
-        #   print("OPEN sesami!") 
-        #elif(dt >  
-        #   print("Close the darn SESAMI")
-        #   dt = 0
+
+
 ###########################################           
     #syntactically, this function works (uncomment from main)
     #sadly, it doesn't work correctly because of timing? other threads don't jump in as quickly as we'd like. 
@@ -77,21 +102,21 @@ class HydroflyVehicle:
     #We should figure out how to keep valve open while still running other threads and also have this thread jump back in to close the valve once time is up, or refernce run() to see if it should keep the valve open for longer.
 
 ###########################################
+
 ###Threading solenoid control? doesnt work
-    def solenoidcontrol(self, terminator):
-        prev_time = time.time()
-        current_time = time.time()
-        dt = 0
-        while (terminator == 0): #and self.conditions are good 
-            
-            ## embed a while loop to keep open? Close then set time_open or time left to open to 0
-            dt = time.time() - prev_time
-            print("OPEN Sesami!") #gpio pin set to high here for relay
-            if ( dt >= self.time_open):
-                print("Close the darn  SESAMI") #pin set to low
-                dt = 0 #resets counter
-                time.sleep(self.dt - self.time_open)
-                prev_time = current_time
+#    def solenoidcontrol(self, terminator):
+#        prev_time = time.time()
+#        dt = 0
+#        while (terminator == 0): #and self.conditions are good 
+#            ## embed a while loop to keep open? Close then set time_open or time left to open to 0
+#            dt = time.time() - prev_time
+#            print("OPEN Sesami!") #gpio pin set to high here for relay
+#            if ( dt >= self.time_open):
+#            #if ( (current_time - State.time) >= self.solenoid_delay):
+#                print("Close the darn  SESAMI") #pin set to low
+#                dt = 0 #resets counter
+#                time.sleep(self.dt - self.time_open)
+#                prev_time = time.time()
 
 
     def abort(self, State):
@@ -103,7 +128,7 @@ class HydroflyVehicle:
             print("Still in calibration phase.")
         elif self.flight_mode == 1: # ascent 
 
-            self.TargetHeight = 2 #aim for height of 2 meters for testing
+            self.TargetHeight = 0.5 #aim for height of 2 meters for testing
             #PIDs already initialized in constructor
             pass
         elif self.flight_mode == 2: # hover
@@ -157,7 +182,10 @@ class HydroflyState:
         self.position = [0,0,0]
         self.orientation = [0,0,0]
         self.height_corr = self.initialization(serialPort)
-        
+       
+        self.solenoid_state = False # solenoid status
+        self.solenoid_time = self.theTime_prev # last time solenoid was opened or closed 
+
         #height correction - will change to array once we get 3 ultrasonic sensors
         self.mass_tot = mass_dry + mass_water
         
