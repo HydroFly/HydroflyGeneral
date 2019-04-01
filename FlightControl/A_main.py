@@ -36,6 +36,7 @@ def interrupt_handler(channel):
         print("Interrupt exception: ", channel)
         global CurrentState
         CurrentState.terminator = 1
+        CurrentState.terminator2 = 1
     elif (channel == gpio40):
         print("Interrupt exception: ", channel)
         global SwitchArmed
@@ -128,7 +129,7 @@ while(CurrentState.terminator ==0):
 
     GPIO.output(gpio37, TheVehicle.run(CurrentState))
     
-    #print("FlightMode: ", TheVehicle.flight_mode, "Height: ", CurrentState.position[2], "DutyCycle Command: ", TheVehicle.time_open)
+    print("MN: FlightMode: ", TheVehicle.flight_mode, "Height: ", CurrentState.position[2], "DutyCycle Command: ", TheVehicle.time_open)
 
 
 datafile.close()
