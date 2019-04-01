@@ -53,24 +53,28 @@ class HydroflyVehicle:
         self.dt = time.time() - self.previousTime
         #self.dt = 0.25 # look half a second into the future, spooky
         height_cv = self.Height_PID.get_cv(self.TargetHeight, State.position[2])
-        target_dv = 2 * (height_cv - State.velocity[2] * self.dt)/(self.dt ** 2)
+        target_dv = 2 * (height_cv - State.velocity[2] * delta_t)/(delta_t ** 2)
         #I think there is a problem here because target_d_mass should never be greater than m_dot_target
         target_d_mass = State.mass_tot * exp((GRAVITY * self.dt / ue) - target_dv / ue)
         m_dot_target = (State.mass_tot - target_d_mass) / self.dt
         print("RN: m_dot_target", m_dot_target)
+
+ 
         duty_cycle = (m_dot_target / m_dot_max)
-        if (target_d_mass >= State.mass_tot):
-            duty_cycle = 1
+#        if (target_d_mass >= State.mass_tot):
+#            duty_cycle = 1
         if duty_cycle < 0:
             duty_cycle = 0
         elif duty_cycle >1:
             duty_cycle = 1
 
+        print("RN: dutycycle", duty_cycle, " RN: dt:", self.dt)       
+
 #####SOMETHING IS MESSED UP HERE. I THINK TIME THAT WE REFERENCE ISNT UPDATING CORRECTLY. REVIEW ALGORITHM.
 
-        self.previousTime = time.time() # when was run() called last
+        #self.previousTime = time.time() # when was run() called last
         self.time_open = duty_cycle*self.dt
-        self.time_openUntil = time.time() + self.time_open # update clock value on when we should close solenoid 
+        #self.time_openUntil = time.time() + self.time_open # update clock value on when we should close solenoid 
         
         #print("Current Time: ", self.previousTime)
         #print("Time open until: ", self.time_openUntil)
@@ -78,22 +82,24 @@ class HydroflyVehicle:
 
         
         #print("Time remaining: ", self.time_open)
-        if(State.solenoid_state == False and (time.time() <= self.time_openUntil)): 
+        #if(State.solenoid_state == False and (time.time() <= self.time_openUntil)): 
             ##GPIO.output(gpio37, True)
-            State.solenoid_state = True
-            State.solenoid_change_time = time.time()
+            #State.solenoid_state = True
+            #State.solenoid_change_time = time.time()
             #print("LED ON")
-        elif(time.time() <= self.time_openUntil):
-            State.solenoid_change_time = time.time()
-            #print("LED ON (already)")
-        else:
+        #elif(time.time() <= self.time_openUntil):
+        #    State.solenoid_change_time = time.time()
+        #    print("LED ON (already)")
+        #else:
             ##GPIO.output(gpio37, False)
-            State.solenoid_state = False
-            State.solenoid_change_time = time.time()
+            #State.solenoid_state = False
+            #State.solenoid_change_time = time.time()
             #print("LED OFF")
-        time.sleep(self.time_open)
+        #time.sleep(self.time_open)
         
-        print("RN: Time_openUntil: ", (time.time() -self.time_openUntil) )
+        #print("RN: Time_openUntil: ", (time.time() -self.time_openUntil) )
+        time.sleep(0.1)
+        State.solenoid_state = duty_cycle
         return State.solenoid_state
 
     def abort(self, State):
@@ -106,7 +112,7 @@ class HydroflyVehicle:
             print("Still in calibration phase.")
         elif self.flight_mode == 1: # ascent 
 
-            self.TargetHeight = 1.0 #aim for height of 2 meters for testing
+            self.TargetHeight = 2.0 #aim for height of 2 meters for testing
             #PIDs already initialized in constructor
             pass
         elif self.flight_mode == 2: # hover

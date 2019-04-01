@@ -127,8 +127,8 @@ while(TheVehicle.flight_mode == 0):
 #Hardware Commands / Flight Mission
 while(CurrentState.terminator ==0):
 
-    GPIO.output(gpio37, TheVehicle.run(CurrentState))
-    
+    #GPIO.output(gpio37, TheVehicle.run(CurrentState))
+    TheVehicle.run(CurrentState)
     print("MN: FlightMode: ", TheVehicle.flight_mode, "Height: ", CurrentState.position[2], "DutyCycle Command: ", TheVehicle.time_open)
 
 
