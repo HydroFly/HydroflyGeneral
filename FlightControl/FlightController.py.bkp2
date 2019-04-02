@@ -33,7 +33,7 @@ class HydroflyVehicle:
         self.TargetHeight = 0
         self.Conditions = [0,0,0,0]
 
-        self.Height_PID = PIDController(1,0,1,.01)
+        self.Height_PID = PIDController(1,0,1,delta_t)
         self.Velocity_PID = PIDController(1,1,1, delta_t)
 
         self.RedlinePressure = 1000 # psi
@@ -51,37 +51,56 @@ class HydroflyVehicle:
         self.dt = time.time() - self.previousTime
         height_cv = self.Height_PID.get_cv(self.TargetHeight, State.position[2])
         target_dv = 2 * (height_cv - State.velocity[2] * delta_t)/(delta_t ** 2)
-        #I think there is a problem here because target_d_mass should never be greater than m_dot_target < target_d_mass should always less than total mass. 
-        target_d_mass = State.mass_tot * exp((GRAVITY * delta_t / ue) - target_dv / ue)
-        m_dot_target = (State.mass_tot - target_d_mass) / delta_t
+        #I think there is a problem here because target_d_mass should never be greater than m_dot_target
+        target_d_mass = State.mass_tot * exp((GRAVITY * self.dt / ue) - target_dv / ue)
+        m_dot_target = (State.mass_tot - target_d_mass) / self.dt
+        print("RN: m_dot_target", m_dot_target)
  
-        percent_open = (m_dot_target / m_dot_max) #imagine a segment being extrapolated on a curve
+        duty_cycle = (m_dot_target / m_dot_max)
+#        if (target_d_mass >= State.mass_tot):
+#            duty_cycle = 1
+        if duty_cycle < 0:
+            duty_cycle = 0
+        elif duty_cycle >1:
+            duty_cycle = 1
 
-        if percent_open < 0:
-            percent_open = 0
-        elif percent_open >1:
-            percent_open = 1
+        print("RN: dutycycle", duty_cycle, " RN: dt:", self.dt)       
 
-        self.time_openUntil = time.time() + delta_t*percent_open
-        print("RN: percent_open", percent_open, "time_openUntil", self.time_openUntil)
-        #print("RN: dutycycle", duty_cycle, " RN: dt:", self.dt)       
+        
+
+        
+        
+        
+
+#####SOMETHING IS MESSED UP HERE. I THINK TIME THAT WE REFERENCE ISNT UPDATING CORRECTLY. REVIEW ALGORITHM.
+
+        #self.previousTime = time.time() # when was run() called last
+        self.time_open = duty_cycle*self.dt
+        #self.time_openUntil = time.time() + self.time_open # update clock value on when we should close solenoid 
+        
+        #print("Current Time: ", self.previousTime)
+        #print("Time open until: ", self.time_openUntil)
+        
+        #print("Time remaining: ", self.time_open)
+        #if(State.solenoid_state == False and (time.time() <= self.time_openUntil)): 
+            ##GPIO.output(gpio37, True)
+            #State.solenoid_state = True
+            #State.solenoid_change_time = time.time()
+            #print("LED ON")
+        #elif(time.time() <= self.time_openUntil):
+        #    State.solenoid_change_time = time.time()
+        #    print("LED ON (already)")
+        #else:
+            ##GPIO.output(gpio37, False)
+            #State.solenoid_state = False
+            #State.solenoid_change_time = time.time()
+            #print("LED OFF")
+        #time.sleep(self.time_open)
+        
+        #print("RN: Time_openUntil: ", (time.time() -self.time_openUntil) )
         time.sleep(0.1)
-        #State.solenoid_state = duty_cycle
-        #return State.solenoid_state
-
-    def control(self, State):
-        if (State.solenoid_state == False and (time.time() <= self.time_openUntil)):
-            State.solenoid_state = True
-            print("CN: Turned LED ON! ")
-        elif (time.time() < self.time_openUntil):
-            print("CN: LED ON ALREADY. Keep on")
-        elif (time.time() >= self.time_openUntil):
-            State.solenoid_state = False
-            print("CN: Turning LED OFF")
-            #self.run(State) < could i call run again then control smartly?
-        else:
-            print("CN: Weird Condition")
-
+        State.solenoid_state = duty_cycle
+        return State.solenoid_state
 
     def abort(self, State):
         State.terminator = 1
@@ -218,7 +237,7 @@ class HydroflyState:
 
             self.position_prev = self.position
             self.theTime_prev = self.theTime
-            print("US: velocity: ", self.velocity[2],  "height ", self.position[2], "Water Remaining: ", self.mass_water_model)
+            print("US: velocity: ", self.velocity[2],  "height ", self.position[2])
             #currently being coded by Chloe
             #datafile.write(","+self.theTime+","+dt+","+self.position[0]+","+self.position[1]+","+self.position[2]+","+self.velocity[0]+","+self.velocity[1]+","+self.velocity[2]+","+self.pressure[0]+","+self.pressure[1]+","+self.pressure[2]+"\n")
             #sleep(.2)

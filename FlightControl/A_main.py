@@ -61,10 +61,6 @@ GPIO.output(gpio37, True)
 sleep(1)
 GPIO.output(gpio37, False)
 sleep(1)
-#GPIO.output(gpio37, True)
-#sleep(1)
-#GPIO.output(gpio37, False)
-#sleep(1)
 
 
 
@@ -109,8 +105,6 @@ print("Threads Started")
 sleep(0.5)
 
 while(TheVehicle.flight_mode == 0):
-#    print("Mode: ", TheVehicle.flight_mode,"P0:", CurrentState.pressure[0], "P1:", CurrentState.pressure[1], "Dist:", CurrentState.position[2], "VelZ: ", CurrentState.velocity[2])
-    #Armed = np.prod(TheVehicle.arm_check(SwitchArmed, SwitchArmed, SwitchArmed, SwitchArmed))
     print("System Currently Unarmed. Press Button to Arm when Ready.", CurrentState.terminator)
     if (SwitchArmed == 1):
         print("System Armed")
@@ -118,18 +112,14 @@ while(TheVehicle.flight_mode == 0):
         TheVehicle.mode_controller(CurrentState) #how about a software interrupt that calls this function anytime flight_mode changes/is set
     sleep(.2)
 
-
-#new thread that opens valve. State references it for calculation purposes.
-#solenoidcontrol_t3 = threading.Thread(target=TheVehicle.solenoidcontrol, args=(CurrentState.terminator,))
-#solenoidcontrol_t3.start()
-#print("Solenoid Control Activated! Run!")
-
 #Hardware Commands / Flight Mission
 while(CurrentState.terminator ==0):
 
     #GPIO.output(gpio37, TheVehicle.run(CurrentState))
     TheVehicle.run(CurrentState)
-    print("MN: FlightMode: ", TheVehicle.flight_mode, "Height: ", CurrentState.position[2], "DutyCycle Command: ", TheVehicle.time_open)
+    TheVehicle.control(CurrentState)
+    GPIO.output(gpio37, CurrentState.solenoid_state)
+    print("MN: FlightMode: ", TheVehicle.flight_mode, "Height: ", CurrentState.position[2], "solenoid_state:", CurrentState.solenoid_state )
 
 
 datafile.close()
