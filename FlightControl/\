@@ -108,35 +108,21 @@ while(TheVehicle.flight_mode == 0):
     print("System Currently Unarmed. Press Button to Arm when Ready.", CurrentState.terminator)
     if (SwitchArmed == 1):
         print("System Armed")
-        TheVehicle.mode_controller(1) #how about a software interrupt that calls this function anytime flight_mode changes/is set
+        TheVehicle.flight_mode = 1
+        TheVehicle.mode_controller(CurrentState) #how about a software interrupt that calls this function anytime flight_mode changes/is set
     sleep(.2)
 
 #Hardware Commands / Flight Mission
-while(CurrentState.terminator ==0 and TheVehicle.flight_mode == 1):
+while(CurrentState.terminator ==0):
 
     TheVehicle.run(CurrentState)
     TheVehicle.control(CurrentState)
     GPIO.output(gpio37, CurrentState.solenoid_state)
     print("MN: FlightMode: ", TheVehicle.flight_mode, "Height: ", CurrentState.position[2], "solenoid_state:", CurrentState.solenoid_state )
-    if (CurrentState.position[2] >= 2 and TheVehicle.hover_endtime == 0):
+    if (CurrentState.Height >= 2 and CurrentState.HoverTime == 0):
+        CurrentState.HoverTime = time.time()
         TheVehicle.mode_controller(2)
 
-while(CurrentState.terminator == 0 and TheVehicle.flight_mode == 2):
-    TheVehicle.run(CurrentState)
-    TheVehicle.control(CurrentState)
-    GPIO.output(gpio37, CurrentState.solenoid_state)
-    print("MN: FlightMode: ", TheVehicle.flight_mode, "Height: ", CurrentState.position[2], "solenoid_state:", CurrentState.solenoid_state )
-    if (time.time() >= TheVehicle.hover_endtime):
-        TheVehicle.mode_controller(3)
 
-print("MN: Hovered for 3 seconds!")
-while(CurrentState.terminator == 0 and TheVehicle.flight_mode == 3):
-    
-    TheVehicle.run(CurrentState)
-    TheVehicle.control(CurrentState)
-    GPIO.output(gpio37, CurrentState.solenoid_state)
-    print("MN: FlightMode: ", TheVehicle.flight_mode, "Height: ", CurrentState.position[2], "solenoid_state:", CurrentState.solenoid_state )
-
-TheVehicle.abort(CurrentState)
 
 datafile.close()

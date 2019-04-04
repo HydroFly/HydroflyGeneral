@@ -27,13 +27,14 @@ TEST_MODE = int(input("Enter Mode Number: "))
 
 
 class HydroflyVehicle:
-    def __init__(self,openedFile): #load a spec sheet instead?
+    def __init__(self,openedFile): #load a spec sheet instead? #also create with pointer to state?
         datafile = openedFile #sets up the file to add data. Handler
         self.flight_mode = 0
         self.TargetHeight = 0
+        self.TargetVelocity =0
         self.Conditions = [0,0,0,0]
 
-        self.Height_PID = PIDController(1,0,1,.01)
+        self.Height_PID = PIDController(1,0,1, delta_t) #making this smaller improves results
         self.Velocity_PID = PIDController(1,1,1, delta_t)
 
         self.RedlinePressure = 1000 # psi
@@ -41,7 +42,10 @@ class HydroflyVehicle:
         self.RedlineOrientation = [5.0, 5.0, 5.0] # degrees, + or -
 
         self.previousTime = time.time() #last time command was sent
+        self.hover_endtime = 0
+
         self.dt = 0
+
         self.solenoid_change_time = 0 # last time solenoid valve condition changed
         self.solenoid_delay = .1 #(s) 100ms: time for solenoid to open or close
 
@@ -51,10 +55,8 @@ class HydroflyVehicle:
         self.dt = time.time() - self.previousTime
         height_cv = self.Height_PID.get_cv(self.TargetHeight, State.position[2])
         target_dv = 2 * (height_cv - State.velocity[2] * delta_t)/(delta_t ** 2)
-        #I think there is a problem here because target_d_mass should never be greater than m_dot_target < target_d_mass should always less than total mass. 
         target_d_mass = State.mass_tot * exp((GRAVITY * delta_t / ue) - target_dv / ue)
         m_dot_target = (State.mass_tot - target_d_mass) / delta_t
- 
         percent_open = (m_dot_target / m_dot_max) #imagine a segment being extrapolated on a curve
 
         if percent_open < 0:
@@ -65,7 +67,6 @@ class HydroflyVehicle:
         self.time_openUntil = time.time() + delta_t*percent_open
         print("RN: percent_open", percent_open, "time_openUntil", self.time_openUntil)
         #print("RN: dutycycle", duty_cycle, " RN: dt:", self.dt)       
-        time.sleep(0.1)
         #State.solenoid_state = duty_cycle
         #return State.solenoid_state
 
@@ -83,12 +84,13 @@ class HydroflyVehicle:
             print("CN: Weird Condition")
 
 
-    def abort(self, State):
+    def abort(self, State): #later, let mode controller set terminator function. This will only close valve and prepare shutdown
         State.terminator = 1
+        #mode_controller(4)
         print("Aborting! And does nothing for now =)")
 
-    def mode_controller(self,State): 
-
+    def mode_controller(self, changed_mode): 
+        self.flight_mode = changed_mode
         if self.flight_mode == 0:
             print("Still in calibration phase.")
         elif self.flight_mode == 1: # ascent 
@@ -96,16 +98,21 @@ class HydroflyVehicle:
             #PIDs already initialized in constructor
             pass
         elif self.flight_mode == 2: # hover
-
+            self.hover_endtime = time.time() + 3
             pass
         elif self.flight_mode == 3: # descent
             self.TargetHeight = 0.0
+            #self.TargetVelocity = 0.5 #.5m/s
+            #clean_PID()
             pass
         elif self.flight_mode == 4: # abort
             #print("About to call abort from mode controller")
-            self.abort(State)
+            #self.abort(State)
+            pass
         else:
             pass
+
+
 
 
 class PIDController:
@@ -134,7 +141,8 @@ class PIDController:
 
 class HydroflyState:
     'Class to Hold and Calc. State Variables'
-    def __init__(self, serialPort):
+    def __init__(self, serialPort, datafile):
+        self.datafile = datafile
         self.theTime_prev = time.time()
         self.position_prev = [0,0,0]
         self.flight_mode_prev = 0
@@ -174,11 +182,11 @@ class HydroflyState:
         return height_corr
 
 
-    def update_state(self, flightmode, adc, gain, serialPort, TheVehicle, datafile):
+    def update_state(self, adc, gain, serialPort, TheVehicle):
         while (self.terminator==0 or self.terminator2==0):
             self.theTime= time.time()
             dt = time.time() - self.theTime_prev
-            self.flight_mode = flightmode
+            self.flight_mode = TheVehicle.flight_mode
 
             self.pressure[0] = utils.volt_to_pressure(utils.val_to_volt(adc.read_adc(0, gain), gain))
             self.pressure[1] = utils.volt_to_pressure(utils.val_to_volt(adc.read_adc(1, gain), gain))
@@ -219,10 +227,9 @@ class HydroflyState:
             self.position_prev = self.position
             self.theTime_prev = self.theTime
             print("US: velocity: ", self.velocity[2],  "height ", self.position[2], "Water Remaining: ", self.mass_water_model)
-            #currently being coded by Chloe
-            #datafile.write(","+self.theTime+","+dt+","+self.position[0]+","+self.position[1]+","+self.position[2]+","+self.velocity[0]+","+self.velocity[1]+","+self.velocity[2]+","+self.pressure[0]+","+self.pressure[1]+","+self.pressure[2]+"\n")
-            #sleep(.2)
-            #self.logdata(datafile)
+            #Logging Procedure
+
+            self.datafile.write(","+str(self.theTime)+","+str(dt)+","+str(self.position[0])+","+str(self.position[1])+","+str(self.position[2])+","+str(self.velocity[0])+","+str(self.velocity[1])+","+str(self.velocity[2])+","+str(self.pressure[0])+","+str(self.pressure[1])+","+str(self.pressure[2])+"\n")
 
     def check_state(self, TheVehicle):
         conditions = [True, True, True, True] #instantiate local variable
@@ -233,12 +240,12 @@ class HydroflyState:
             conditions[2] = True
             conditions[3] = True
             #print(conditions, prod(conditions))
-            time.sleep(0.1)
+            time.sleep(0.05) #changed from 0.1. Performance improved.
             if prod(conditions) !=1:
                 if (conditions[0] == False):
                     print("CS: Height Exceeded Max Height of: ", TheVehicle.RedlineHeight) 
-                TheVehicle.flight_mode = 4
-                TheVehicle.mode_controller(self)
+                TheVehicle.abort(self)
+
         
     def log_data(self,datafile):
         print("LD: About to log, baby!")
