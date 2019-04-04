@@ -19,6 +19,7 @@ global m_dot_max
 m_dot_max = 997 *nozzle_area * ue # mass flow rate, kg/s
 print("INIT: mass flow rate: ", m_dot_max)
 delta_t =0.25
+actuation_delay = 0.1 #Thomas's 100ms delay :3
 
 print("\t *** Select Mode: ***")
 print("\t 0_ Sensor Data")
@@ -73,15 +74,21 @@ class HydroflyVehicle:
     def control(self, State):
         if (State.solenoid_state == False and (time.time() <= self.time_openUntil)):
             State.solenoid_state = True
+            time.sleep(actuation_delay)
             print("CN: Turned LED ON! ")
         elif (time.time() < self.time_openUntil):
-            print("CN: LED ON ALREADY. Keep on")
-        elif (time.time() >= self.time_openUntil):
+            print("CN: Led ON Already. Keep ON!")
+        elif (time.time() >= self.time_openUntil and State.solenoid_state==True):
             State.solenoid_state = False
+            time.sleep(actuation_delay) #actuation delay
             print("CN: Turning LED OFF")
+        elif (time.time() >= self.time_openUntil and State.solenoid_state==False):
+            print("CN: LED OFF Already. Keep OFF!")
+            pass
             #self.run(State) < could i call run again then control smartly?
         else:
             print("CN: Weird Condition")
+
 
 
     def abort(self, State): #later, let mode controller set terminator function. This will only close valve and prepare shutdown
