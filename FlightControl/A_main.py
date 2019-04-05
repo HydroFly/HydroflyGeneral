@@ -24,7 +24,6 @@ GPIO.setmode(GPIO.BCM) #BCM naming convention instead of GPIO.board
 gpio37 = 13
 GPIO.setup(gpio37, GPIO.OUT, initial=GPIO.LOW)
 
-
 gpio16 = 23
 GPIO.setup(gpio16, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 
@@ -35,8 +34,8 @@ def interrupt_handler(channel):
     if (channel == gpio16):
         print("Interrupt exception: ", channel)
         global CurrentState
-        CurrentState.terminator = 1
-        CurrentState.terminator2 = 1
+        CurrentState.terminator[0] = 1
+        CurrentState.terminator[1] = 1
     elif (channel == gpio40):
         print("Interrupt exception: ", channel)
         global SwitchArmed
@@ -63,7 +62,6 @@ GPIO.output(gpio37, False)
 sleep(1)
 
 
-
 ### Define ultrasonic sensor interface
 serialPort = "/dev/ttyAMA0"
 maxRange = 5000  # change for 5m vs 10m sensor
@@ -85,6 +83,7 @@ CurrentState = FC.HydroflyState(serialPort, datafile)
 TheVehicle = FC.HydroflyVehicle(datafile) 
 print("State and Vehicle Objects Created")
 
+#initiate briefcase monitoring
 SwitchArmed = 0
 Armed = 0
 
@@ -108,11 +107,16 @@ while(TheVehicle.flight_mode == 0):
     print("System Currently Unarmed. Press Button to Arm when Ready.", CurrentState.terminator)
     if (SwitchArmed == 1):
         print("System Armed")
+        TheVehicle.Conditions = [1,1,1,1] #once sensors added, just sent one of the elements
         TheVehicle.mode_controller(1) #how about a software interrupt that calls this function anytime flight_mode changes/is set
     sleep(.2)
 
+#Ground Control Arming, aka, launch!! # <talk to chloe about arming condition
+#if statement on conditions being all 1, then mode_controller(1)
+
+
 #Hardware Commands / Flight Mission
-while(CurrentState.terminator ==0 and TheVehicle.flight_mode == 1):
+while(CurrentState.terminator[0] == 0 and TheVehicle.flight_mode == 1):
 
     TheVehicle.run(CurrentState)
     TheVehicle.control(CurrentState)
@@ -121,7 +125,7 @@ while(CurrentState.terminator ==0 and TheVehicle.flight_mode == 1):
     if (CurrentState.position[2] >= 2 and TheVehicle.hover_endtime == 0):
         TheVehicle.mode_controller(2)
 
-while(CurrentState.terminator == 0 and TheVehicle.flight_mode == 2):
+while(CurrentState.terminator[0] == 0 and TheVehicle.flight_mode == 2):
     TheVehicle.run(CurrentState)
     TheVehicle.control(CurrentState)
     GPIO.output(gpio37, CurrentState.solenoid_state)
@@ -130,13 +134,18 @@ while(CurrentState.terminator == 0 and TheVehicle.flight_mode == 2):
         TheVehicle.mode_controller(3)
 
 print("MN: Hovered for 3 seconds!")
-while(CurrentState.terminator == 0 and TheVehicle.flight_mode == 3):
+while(CurrentState.terminator[0] == 0 and TheVehicle.flight_mode == 3):
     
     TheVehicle.run(CurrentState)
     TheVehicle.control(CurrentState)
     GPIO.output(gpio37, CurrentState.solenoid_state)
     print("MN: FlightMode: ", TheVehicle.flight_mode, "Height: ", CurrentState.position[2], "solenoid_state:", CurrentState.solenoid_state )
 
+
 TheVehicle.abort(CurrentState)
 
-datafile.close()
+while (True):
+    if (sum(CurrentState.terminator) == 2):
+        datafile.close()
+        break
+

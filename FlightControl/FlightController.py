@@ -67,9 +67,6 @@ class HydroflyVehicle:
 
         self.time_openUntil = time.time() + delta_t*percent_open
         print("RN: percent_open", percent_open, "time_openUntil", self.time_openUntil)
-        #print("RN: dutycycle", duty_cycle, " RN: dt:", self.dt)       
-        #State.solenoid_state = duty_cycle
-        #return State.solenoid_state
 
     def control(self, State):
         if (State.solenoid_state == False and (time.time() <= self.time_openUntil)):
@@ -92,7 +89,8 @@ class HydroflyVehicle:
 
 
     def abort(self, State): #later, let mode controller set terminator function. This will only close valve and prepare shutdown
-        State.terminator = 1
+        State.terminator[0] = 1
+        State.solenoid_state = False
         #mode_controller(4)
         print("Aborting! And does nothing for now =)")
 
@@ -112,9 +110,8 @@ class HydroflyVehicle:
             #self.TargetVelocity = 0.5 #.5m/s
             #clean_PID()
             pass
-        elif self.flight_mode == 4: # abort
-            #print("About to call abort from mode controller")
-            #self.abort(State)
+        elif self.flight_mode == 4:
+            
             pass
         else:
             pass
@@ -161,8 +158,7 @@ class HydroflyState:
 
         self.flight_mode = 0
         self.pressure = [0,0,0]
-        self.terminator = 0
-        self.terminator2 = 0
+        self.terminator = [0,0]
         self.future_terminator = [0, 0, 0] #logging, stateupdate, solenoidcontrol
         self.velocity = [0,0,0]
         self.position = [0,0,0]
@@ -190,7 +186,7 @@ class HydroflyState:
 
 
     def update_state(self, adc, gain, serialPort, TheVehicle):
-        while (self.terminator==0 or self.terminator2==0):
+        while (self.terminator[0]==0 or self.terminator[1]==0):
             self.theTime= time.time()
             dt = time.time() - self.theTime_prev
             self.flight_mode = TheVehicle.flight_mode
@@ -210,7 +206,7 @@ class HydroflyState:
                 mass_tot_new = self.mass_tot - m_dot_max * dt * self.solenoid_state
                 if (self.mass_water_model <=0):
                     print("US: Out of Water")
-                    self.terminator = 1
+                    self.terminator[0] = 1
                     mass_tot_new = mass_dry
                     if self.time_no_water == 0: #if this is the first time through this loop, mark the time
                         self.time_no_water = time.time()
@@ -238,9 +234,10 @@ class HydroflyState:
 
             self.datafile.write(","+str(self.theTime)+","+str(dt)+","+str(self.position[0])+","+str(self.position[1])+","+str(self.position[2])+","+str(self.velocity[0])+","+str(self.velocity[1])+","+str(self.velocity[2])+","+str(self.pressure[0])+","+str(self.pressure[1])+","+str(self.pressure[2])+"\n")
 
+
     def check_state(self, TheVehicle):
         conditions = [True, True, True, True] #instantiate local variable
-        while (self.terminator==0):
+        while (sum(self.terminator)==0):
             print("CS: Checking State")
             conditions[0] = self.position[2] < TheVehicle.RedlineHeight
             conditions[1] = (self.orientation[0] < TheVehicle.RedlineOrientation[0]) and (self.orientation[1] < TheVehicle.RedlineOrientation[1]) and (self.orientation[2] < TheVehicle.RedlineOrientation[2]) 
