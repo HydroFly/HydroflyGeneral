@@ -146,6 +146,7 @@ TheVehicle.abort(CurrentState)
 
 while (True):
     if (sum(CurrentState.terminator) == 2):
+        sleep(0.5) #let all threads finish
         datafile.close()
         break
 

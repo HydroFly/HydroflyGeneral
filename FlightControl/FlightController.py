@@ -33,7 +33,7 @@ class HydroflyVehicle:
         self.flight_mode = 0
         self.TargetHeight = 0
         self.TargetVelocity =0
-        self.Conditions = [0,0,0,0]
+        self.Conditions = [0,0,0,0] #redline conditions. height, orientation, pressure, offboard switch
 
         self.Height_PID = PIDController(1,0,1, delta_t) #making this smaller improves results
         self.Velocity_PID = PIDController(1,1,1, delta_t)
@@ -89,10 +89,10 @@ class HydroflyVehicle:
 
 
     def abort(self, State): #later, let mode controller set terminator function. This will only close valve and prepare shutdown
+        print("Aborting! Setting terminator[0] = 1 and locking solenoid valve")
         State.terminator[0] = 1
         State.solenoid_state = False
         #mode_controller(4)
-        print("Aborting! And does nothing for now =)")
 
     def mode_controller(self, changed_mode): 
         self.flight_mode = changed_mode
@@ -118,7 +118,6 @@ class HydroflyVehicle:
 
 
 
-
 class PIDController:
     def __init__(self, kp, ki, kd, dt): #instead of dt, use last action time? then calc dt from current time? ****see below
         self.KP = kp
@@ -136,6 +135,7 @@ class PIDController:
         derivative = (error - self.prevError)/self.dt
         self.prevError = error
         return self.KP * error + self.KI * self.integral + self.KD *derivative
+
 
     def clean(self):
         self.prevError = 0
@@ -235,7 +235,7 @@ class HydroflyState:
             self.datafile.write(","+str(self.theTime)+","+str(dt)+","+str(self.position[0])+","+str(self.position[1])+","+str(self.position[2])+","+str(self.velocity[0])+","+str(self.velocity[1])+","+str(self.velocity[2])+","+str(self.pressure[0])+","+str(self.pressure[1])+","+str(self.pressure[2])+"\n")
 
 
-    def check_state(self, TheVehicle):
+    def check_state(self, TheVehicle): #check safety
         conditions = [True, True, True, True] #instantiate local variable
         while (sum(self.terminator)==0):
             print("CS: Checking State")
@@ -248,10 +248,8 @@ class HydroflyState:
             if prod(conditions) !=1:
                 if (conditions[0] == False):
                     print("CS: Height Exceeded Max Height of: ", TheVehicle.RedlineHeight) 
+                elif (conditions[1] == False):
+                    print("CS: Height Exceeded Max Orientation of: ", TheVehicle.RedlineOrientation) 
+                #2 more elifs
                 TheVehicle.abort(self)
-
-        
-    def log_data(self,datafile):
-        print("LD: About to log, baby!")
-        datafile.write(str(self.pressure[0]) + "," + str(self.pressure[1]) + "," + str(self.position[2])+ "\n")
 
