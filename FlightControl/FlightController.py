@@ -107,7 +107,7 @@ class HydroflyVehicle:
             pass
         elif self.flight_mode == 3: # descent
             self.TargetHeight = 0.0
-            #self.TargetVelocity = 0.5 #.5m/s
+            #self.TargetVelocity = -0.5 #-.5m/s
             #clean_PID()
             pass
         elif self.flight_mode == 4:
@@ -204,6 +204,8 @@ class HydroflyState:
             elif (TEST_MODE == 1):
                 self.mass_water_model -= m_dot_max * dt * self.solenoid_state
                 mass_tot_new = self.mass_tot - m_dot_max * dt * self.solenoid_state
+                #sel
+
                 if (self.mass_water_model <=0):
                     print("US: Out of Water")
                     self.terminator[0] = 1

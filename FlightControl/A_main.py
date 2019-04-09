@@ -46,8 +46,8 @@ def interrupt_handler(channel):
 
 #load GPIO event detections
 def loadeventdetection():
-    GPIO.add_event_detect(gpio16, GPIO.RISING, callback=interrupt_handler, bouncetime=200)
-    GPIO.add_event_detect(gpio40, GPIO.RISING, callback=interrupt_handler, bouncetime=200)
+    GPIO.add_event_detect(gpio16, GPIO.FALLING, callback=interrupt_handler, bouncetime=200)
+    GPIO.add_event_detect(gpio40, GPIO.FALLING, callback=interrupt_handler, bouncetime=200)
     print("Event Detection loaded. (Interrupts)")
 loadeventdetection()
 
