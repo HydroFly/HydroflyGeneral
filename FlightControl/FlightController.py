@@ -69,22 +69,25 @@ class HydroflyVehicle:
         print("RN: percent_open", percent_open, "time_openUntil", self.time_openUntil)
 
     def control(self, State):
-        if (State.solenoid_state == False and (time.time() <= self.time_openUntil)):
-            State.solenoid_state = True
-            time.sleep(actuation_delay)
-            print("CN: Turned LED ON! ")
-        elif (time.time() < self.time_openUntil):
-            print("CN: Led ON Already. Keep ON!")
-        elif (time.time() >= self.time_openUntil and State.solenoid_state==True):
-            State.solenoid_state = False
-            time.sleep(actuation_delay) #actuation delay
-            print("CN: Turning LED OFF")
-        elif (time.time() >= self.time_openUntil and State.solenoid_state==False):
-            print("CN: LED OFF Already. Keep OFF!")
-            pass
-            #self.run(State) < could i call run again then control smartly?
+        if State.terminator[0] == 0:
+            if (State.solenoid_state == False and (time.time() <= self.time_openUntil)):
+                State.solenoid_state = True
+                time.sleep(actuation_delay)
+                print("CN: Turned LED ON! ")
+            elif (time.time() < self.time_openUntil):
+                print("CN: Led ON Already. Keep ON!")
+            elif (time.time() >= self.time_openUntil and State.solenoid_state==True):
+                State.solenoid_state = False
+                time.sleep(actuation_delay) #actuation delay
+                print("CN: Turning LED OFF")
+            elif (time.time() >= self.time_openUntil and State.solenoid_state==False):
+                print("CN: LED OFF Already. Keep OFF!")
+                pass
+                #self.run(State) < could i call run again then control smartly?
+            else:
+                print("CN: Weird Condition")
         else:
-            print("CN: Weird Condition")
+            print("CN: terminator = 1", state.solenoid_mode)
 
 
 
@@ -226,6 +229,7 @@ class HydroflyState:
                         self.time_no_altitude = time.time()
                         print("Time H20 runs out: ", (self.time_no_water - self.time_start))
                         print("Time hits ground: ", (self.time_no_altitude - self.time_start))
+                        TheVehicle.abort(self)
                 self.velocity[2] = self.velocity_model[2]
                 self.position[2] = self.position_model[2]
 
