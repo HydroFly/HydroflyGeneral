@@ -31,6 +31,8 @@ gpio40 = 21
 GPIO.setup(gpio40, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 
 def interrupt_handler(channel):
+#put all of the check before if statement?
+    print("IH: Interrupt detected on pin: ", channel)
     if (channel == gpio16):
         time.sleep(0.05) #filter out false positives from EMI interference
 
