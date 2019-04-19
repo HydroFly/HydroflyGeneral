@@ -33,7 +33,7 @@ class HydroflyVehicle:
         self.flight_mode = 0
         self.TargetHeight = 0
         self.TargetVelocity =0
-        self.Conditions = [0,0,0,0]
+        self.Conditions = [0,0,0,0] #redline conditions. height, orientation, pressure, offboard switch
 
         self.Height_PID = PIDController(1,0,1, delta_t) #making this smaller improves results
         self.Velocity_PID = PIDController(1,1,1, delta_t)
@@ -69,30 +69,33 @@ class HydroflyVehicle:
         print("RN: percent_open", percent_open, "time_openUntil", self.time_openUntil)
 
     def control(self, State):
-        if (State.solenoid_state == False and (time.time() <= self.time_openUntil)):
-            State.solenoid_state = True
-            time.sleep(actuation_delay)
-            print("CN: Turned LED ON! ")
-        elif (time.time() < self.time_openUntil):
-            print("CN: Led ON Already. Keep ON!")
-        elif (time.time() >= self.time_openUntil and State.solenoid_state==True):
-            State.solenoid_state = False
-            time.sleep(actuation_delay) #actuation delay
-            print("CN: Turning LED OFF")
-        elif (time.time() >= self.time_openUntil and State.solenoid_state==False):
-            print("CN: LED OFF Already. Keep OFF!")
-            pass
-            #self.run(State) < could i call run again then control smartly?
+        if State.terminator[0] == 0:
+            if (State.solenoid_state == False and (time.time() <= self.time_openUntil)):
+                State.solenoid_state = True
+                time.sleep(actuation_delay)
+                print("CN: Turned LED ON! ")
+            elif (time.time() < self.time_openUntil):
+                print("CN: Led ON Already. Keep ON!")
+            elif (time.time() >= self.time_openUntil and State.solenoid_state==True):
+                State.solenoid_state = False
+                time.sleep(actuation_delay) #actuation delay
+                print("CN: Turning LED OFF")
+            elif (time.time() >= self.time_openUntil and State.solenoid_state==False):
+                print("CN: LED OFF Already. Keep OFF!")
+                pass
+                #self.run(State) < could i call run again then control smartly?
+            else:
+                print("CN: Weird Condition")
         else:
-            print("CN: Weird Condition")
+            print("CN: terminator = 1", state.solenoid_mode)
 
 
 
     def abort(self, State): #later, let mode controller set terminator function. This will only close valve and prepare shutdown
+        print("Aborting! Setting terminator[0] = 1 and locking solenoid valve")
         State.terminator[0] = 1
         State.solenoid_state = False
         #mode_controller(4)
-        print("Aborting! And does nothing for now =)")
 
     def mode_controller(self, changed_mode): 
         self.flight_mode = changed_mode
@@ -107,7 +110,7 @@ class HydroflyVehicle:
             pass
         elif self.flight_mode == 3: # descent
             self.TargetHeight = 0.0
-            #self.TargetVelocity = 0.5 #.5m/s
+            #self.TargetVelocity = -0.5 #-.5m/s
             #clean_PID()
             pass
         elif self.flight_mode == 4:
@@ -115,7 +118,6 @@ class HydroflyVehicle:
             pass
         else:
             pass
-
 
 
 
@@ -136,6 +138,7 @@ class PIDController:
         derivative = (error - self.prevError)/self.dt
         self.prevError = error
         return self.KP * error + self.KI * self.integral + self.KD *derivative
+
 
     def clean(self):
         self.prevError = 0
@@ -204,6 +207,8 @@ class HydroflyState:
             elif (TEST_MODE == 1):
                 self.mass_water_model -= m_dot_max * dt * self.solenoid_state
                 mass_tot_new = self.mass_tot - m_dot_max * dt * self.solenoid_state
+                #sel
+
                 if (self.mass_water_model <=0):
                     print("US: Out of Water")
                     self.terminator[0] = 1
@@ -224,6 +229,7 @@ class HydroflyState:
                         self.time_no_altitude = time.time()
                         print("Time H20 runs out: ", (self.time_no_water - self.time_start))
                         print("Time hits ground: ", (self.time_no_altitude - self.time_start))
+                        TheVehicle.abort(self)
                 self.velocity[2] = self.velocity_model[2]
                 self.position[2] = self.position_model[2]
 
@@ -235,7 +241,7 @@ class HydroflyState:
             self.datafile.write(","+str(self.theTime)+","+str(dt)+","+str(self.position[0])+","+str(self.position[1])+","+str(self.position[2])+","+str(self.velocity[0])+","+str(self.velocity[1])+","+str(self.velocity[2])+","+str(self.pressure[0])+","+str(self.pressure[1])+","+str(self.pressure[2])+"\n")
 
 
-    def check_state(self, TheVehicle):
+    def check_state(self, TheVehicle): #check safety
         conditions = [True, True, True, True] #instantiate local variable
         while (sum(self.terminator)==0):
             print("CS: Checking State")
@@ -248,10 +254,8 @@ class HydroflyState:
             if prod(conditions) !=1:
                 if (conditions[0] == False):
                     print("CS: Height Exceeded Max Height of: ", TheVehicle.RedlineHeight) 
+                elif (conditions[1] == False):
+                    print("CS: Height Exceeded Max Orientation of: ", TheVehicle.RedlineOrientation) 
+                #2 more elifs
                 TheVehicle.abort(self)
-
-        
-    def log_data(self,datafile):
-        print("LD: About to log, baby!")
-        datafile.write(str(self.pressure[0]) + "," + str(self.pressure[1]) + "," + str(self.position[2])+ "\n")
 

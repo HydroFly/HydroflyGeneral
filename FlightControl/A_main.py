@@ -32,22 +32,34 @@ GPIO.setup(gpio40, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 
 def interrupt_handler(channel):
     if (channel == gpio16):
-        print("Interrupt exception: ", channel)
-        global CurrentState
-        CurrentState.terminator[0] = 1
-        CurrentState.terminator[1] = 1
-    elif (channel == gpio40):
-        print("Interrupt exception: ", channel)
-        global SwitchArmed
-        if(SwitchArmed ==1):
-            interrupt_handler(gpio16)
+        time.sleep(0.05) #filter out false positives from EMI interference
+
+        if GPIO.input(gpio16) != GPIO.LOW:
+            return
         else:
-            SwitchArmed = 1
+            print("Interrupt exception: ", channel)
+            global CurrentState
+            CurrentState.terminator[0] = 1
+            CurrentState.terminator[1] = 1
+    elif (channel == gpio40):
+        time.sleep(0.05) #filter out false positives from EMI interference
+        if GPIO.input(gpio40) != GPIO.LOW:
+            return
+        else:
+            print("Interrupt exception: ", channel)
+            global SwitchArmed
+            if(SwitchArmed ==1):
+                #interrupt_handler(gpio16) <proof of concept
+                CurrentState.terminator[0] = 1
+                CurrentState.terminator[1] = 1
+
+            else:
+                SwitchArmed = 1
 
 #load GPIO event detections
 def loadeventdetection():
-    GPIO.add_event_detect(gpio16, GPIO.RISING, callback=interrupt_handler, bouncetime=200)
-    GPIO.add_event_detect(gpio40, GPIO.RISING, callback=interrupt_handler, bouncetime=200)
+    GPIO.add_event_detect(gpio16, GPIO.FALLING, callback=interrupt_handler, bouncetime=20)
+    GPIO.add_event_detect(gpio40, GPIO.FALLING, callback=interrupt_handler, bouncetime=20)
     print("Event Detection loaded. (Interrupts)")
 loadeventdetection()
 
@@ -55,11 +67,11 @@ loadeventdetection()
 adc = Adafruit_ADS1x15.ADS1115()
 gain = 2.0/3.0 # gain factor for board, 2/3 can read up to 6V, 1 can read up to 4.096V
 
-print("LED Check Initiated")
-GPIO.output(gpio37, True)
-sleep(1)
-GPIO.output(gpio37, False)
-sleep(1)
+#print("LED Check Initiated")
+#GPIO.output(gpio37, True)
+#sleep(1)
+#GPIO.output(gpio37, False)
+#sleep(1)
 
 
 ### Define ultrasonic sensor interface
@@ -143,9 +155,10 @@ while(CurrentState.terminator[0] == 0 and TheVehicle.flight_mode == 3):
 
 
 TheVehicle.abort(CurrentState)
-
+GPIO.output(gpio37, CurrentState.solenoid_state)
 while (True):
     if (sum(CurrentState.terminator) == 2):
+        sleep(0.5) #let all threads finish
         datafile.close()
         break
 
