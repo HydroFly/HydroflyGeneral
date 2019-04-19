@@ -45,12 +45,20 @@ Make it a function that gets called by update state, the flight control, and may
 Also, must log termination/redline condition type before closing.
 Function must be easy to modify or flexible by nature as we increase the number of variables being recorded. 
 
+Where to put log data?
+
 Example:
-Col1: Flight Mode
-Col2: Time Stamp (currentTime?)
-Col3: dt used
-Col4 ---- Col20: States
-Col21---- COl28: Command Calcs?
+Col1: Flight Mode =>vehicle
+Col2: Time Stamp (currentTime?) =>vehicle and state
+Col3: dt used => both
+Col4 ---- Col12: States (position 3, velocity 3, pressure 3) 
+
+Col13---- COl17: Command Calcs? (height_cv,target_dv,target_d_mass,duty_cycle,time_open)
+Col18: soleniod open close
+
+Log vehicle and state
+adding a log data function in vehicle and state
+This will also help with efficiency because the pi is not passing variables accross files
 
 print null characters for unused columns (instead of zeros)
 

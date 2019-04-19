@@ -2,8 +2,8 @@ import RPi.GPIO as GPIO
 import time
 
 GPIO.setwarnings(False)
-GPIO.setmode(GPIO.BOARD)
-Pinno = 8
+GPIO.setmode(GPIO.BCM)
+Pinno = 23
 GPIO.setup(Pinno, GPIO.OUT, initial=GPIO.LOW)
 
 state = True
