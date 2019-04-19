@@ -21,7 +21,7 @@ import threading
 
 GPIO.setmode(GPIO.BCM) #BCM naming convention instead of GPIO.board
 #variable names based on BOARD convention. pin number uses BCM
-gpio37 = 13
+gpio37 = 27
 GPIO.setup(gpio37, GPIO.OUT, initial=GPIO.LOW)
 
 gpio16 = 23
