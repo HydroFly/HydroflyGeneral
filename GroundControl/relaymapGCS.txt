@@ -3,3 +3,19 @@ Board Numbering:
 16: Relay 3
 18: Relay 2
 22: Relay 1
+
+32: Relay 5
+36: Relay 6
+38: Relay 7
+40: Relay 8
+
+38
+40
+
+13: Operator 1
+11: Operator 2
+
+29: Vehicle Power
+31: Vehicle Launch
+33:
+35:

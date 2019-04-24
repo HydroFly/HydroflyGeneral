@@ -2,15 +2,19 @@ import time
 from time import sleep
 import RPi.GPIO as GPIO
 
-GPIO.setmode(GPIO.BCM)
+GPIO.setmode(GPIO.BOARD)
 
-pin1 = 27
-pin2 = 17
+pin1 = 13
+pin2 = 11
 GPIO.setup(pin1, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(pin2, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 def interrupt_handler(channel):
-    if (channel== pin1):  
+    time.sleep(0.05)
+    if GPIO.input(channel) == GPIO.LOW:
+        return
+
+    if (channel== pin1):
         if(GPIO.input(pin1) == False): # if switch closes 
             print("Unlocked 1!")
             global unlocked1
@@ -30,25 +34,8 @@ def interrupt_handler(channel):
             global unlocked2
             unlocked2 = False
 
-
-#def interrupt_rising(channel):
-#    if (channel== pin1):  
-#        print("Unlocked 1!")
-#        global unlocked1
-#        unlocked1 = False
-#    if (channel== pin2):  
-#        print("Unlocked 2!")
-#        global unlocked2
-#        unlocked2 = False
-
-
 GPIO.add_event_detect(pin1, GPIO.BOTH, callback=interrupt_handler, bouncetime=20)
 GPIO.add_event_detect(pin2, GPIO.BOTH, callback=interrupt_handler, bouncetime=20)
-
-
-
-#GPIO.add_event_detect(pin1, GPIO.RISING, callback=interrupt_rising, bouncetime=200)
-#GPIO.add_event_detect(pin2, GPIO.RISING, callback=interrupt_rising, bouncetime=200)
 
 running = False
 unlocked1 = False
@@ -66,8 +53,4 @@ while(True):
     #print("monitoring")
     pass
 
-
 print("Fully unlocked")
-        
-
-    
