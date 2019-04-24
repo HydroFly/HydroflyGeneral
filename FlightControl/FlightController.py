@@ -23,9 +23,11 @@ actuation_delay = 0.1 #Thomas's 100ms delay :3
 
 print("\t *** Select Mode: ***")
 print("\t 0_ Sensor Data")
-print("\t 1_ TestMode; simulation.\n")
-TEST_MODE = int(input("Enter Mode Number: "))
+print("\t 1_ TestMode: simulation.")
+print("\t 2_ TestMOde: Static Thrust Test \n")
 
+TEST_MODE = int(input("Enter Mode Number: "))
+#TEST_MODE=0
 
 class HydroflyVehicle:
     def __init__(self,openedFile): #load a spec sheet instead? #also create with pointer to state?
@@ -39,7 +41,7 @@ class HydroflyVehicle:
         self.Velocity_PID = PIDController(1,1,1, delta_t)
 
         self.RedlinePressure = 1000 # psi
-        self.RedlineHeight = 3.5 # meters
+        self.RedlineHeight = 3.0 # meters
         self.RedlineOrientation = [5.0, 5.0, 5.0] # degrees, + or -
 
         self.previousTime = time.time() #last time command was sent
@@ -64,6 +66,10 @@ class HydroflyVehicle:
             percent_open = 0
         elif percent_open >1:
             percent_open = 1
+        
+            
+        if TEST_MODE == 2:
+            percent_open = 1
 
         self.time_openUntil = time.time() + delta_t*percent_open
         print("RN: percent_open", percent_open, "time_openUntil", self.time_openUntil)
@@ -87,8 +93,7 @@ class HydroflyVehicle:
             else:
                 print("CN: Weird Condition")
         else:
-            print("CN: terminator = 1", state.solenoid_mode)
-
+            print("CN: terminator = 1", State.solenoid_state)
 
 
     def abort(self, State): #later, let mode controller set terminator function. This will only close valve and prepare shutdown
@@ -162,7 +167,7 @@ class HydroflyState:
         self.flight_mode = 0
         self.pressure = [0,0,0]
         self.terminator = [0,0]
-        self.future_terminator = [0, 0, 0] #logging, stateupdate, solenoidcontrol
+
         self.velocity = [0,0,0]
         self.position = [0,0,0]
         self.orientation = [0,0,0]
@@ -197,7 +202,19 @@ class HydroflyState:
             self.pressure[0] = utils.volt_to_pressure(utils.val_to_volt(adc.read_adc(0, gain), gain))
             self.pressure[1] = utils.volt_to_pressure(utils.val_to_volt(adc.read_adc(1, gain), gain))
             self.pressure[2] = utils.volt_to_pressure(utils.val_to_volt(adc.read_adc(2, gain), gain))
-            if (TEST_MODE == 0):
+
+            self.mass_water_model -= m_dot_max * dt * self.solenoid_state
+            mass_tot_new = self.mass_tot - m_dot_max * dt * self.solenoid_state
+
+            if (self.mass_water_model <=0):
+                print("US: Out of Water")
+                self.terminator[0] = 1
+                mass_tot_new = mass_dry
+                if self.time_no_water == 0: #if this is the first time through this loop, mark the time
+                    self.time_no_water = time.time()
+
+
+            if (TEST_MODE != 1): #==0
                 self.position[0] = 0.0
                 self.position[1] = 0.0
                 self.position[2] = 0.0254*(maxSonarTTY.measure(serialPort) - self.height_corr)
@@ -205,20 +222,7 @@ class HydroflyState:
                 self.velocity[1] = 0.0
                 self.velocity[2] = ((self.position[2] - self.position_prev[2])/dt)
             elif (TEST_MODE == 1):
-                self.mass_water_model -= m_dot_max * dt * self.solenoid_state
-                mass_tot_new = self.mass_tot - m_dot_max * dt * self.solenoid_state
-                #sel
-
-                if (self.mass_water_model <=0):
-                    print("US: Out of Water")
-                    self.terminator[0] = 1
-                    mass_tot_new = mass_dry
-                    if self.time_no_water == 0: #if this is the first time through this loop, mark the time
-                        self.time_no_water = time.time()
-
                 dv = GRAVITY * dt + (ue * log(self.mass_tot / mass_tot_new))
-                self.mass_tot = mass_tot_new
-
                 self.velocity_model[2] += dv
                 self.position_model[2] += self.velocity_model[2]*dt
 
@@ -233,11 +237,10 @@ class HydroflyState:
                 self.velocity[2] = self.velocity_model[2]
                 self.position[2] = self.position_model[2]
 
+            self.mass_tot = mass_tot_new
             self.position_prev = self.position
             self.theTime_prev = self.theTime
             print("US: velocity: ", self.velocity[2],  "height ", self.position[2], "Water Remaining: ", self.mass_water_model)
-            #Logging Procedure
-
             self.datafile.write(","+str(self.theTime)+","+str(dt)+","+str(self.position[0])+","+str(self.position[1])+","+str(self.position[2])+","+str(self.velocity[0])+","+str(self.velocity[1])+","+str(self.velocity[2])+","+str(self.pressure[0])+","+str(self.pressure[1])+","+str(self.pressure[2])+"\n")
 
 
@@ -249,13 +252,11 @@ class HydroflyState:
             conditions[1] = (self.orientation[0] < TheVehicle.RedlineOrientation[0]) and (self.orientation[1] < TheVehicle.RedlineOrientation[1]) and (self.orientation[2] < TheVehicle.RedlineOrientation[2]) 
             conditions[2] = True
             conditions[3] = True
-            #print(conditions, prod(conditions))
             time.sleep(0.05) #changed from 0.1. Performance improved.
             if prod(conditions) !=1:
                 if (conditions[0] == False):
                     print("CS: Height Exceeded Max Height of: ", TheVehicle.RedlineHeight) 
                 elif (conditions[1] == False):
                     print("CS: Height Exceeded Max Orientation of: ", TheVehicle.RedlineOrientation) 
-                #2 more elifs
                 TheVehicle.abort(self)
 

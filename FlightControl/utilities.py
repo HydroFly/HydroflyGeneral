@@ -1,7 +1,7 @@
 def volt_to_pressure(voltage):
     """ converts voltage from ADC to PSIA value"""
-    maxPress = 750.0
-    minPress = 10.0
+    maxPress = 2500.0
+    minPress = 0.0
     vSource = 5.0 #voltage source to ADC
     vSupplyPress = 5.0 #voltage supply to pressure sensor
 
