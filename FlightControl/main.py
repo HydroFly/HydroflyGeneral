@@ -80,7 +80,7 @@ datafile.write("Hydrofly Data,Version 1,"+ str(d.month)+"/"+ str(d.day) + "/" +s
 datafile.write("Pressure 0,Pressure 1,Pressure 2,Distance\n")
 print("Log File Created")
 
-CurrentState = FC.HydroflyState(serialPort, datafile)
+CurrentState = FC.HydroflyState(serialPort, adc, gain, datafile)
 TheVehicle = FC.HydroflyVehicle(datafile) 
 print("State and Vehicle Objects Created")
 

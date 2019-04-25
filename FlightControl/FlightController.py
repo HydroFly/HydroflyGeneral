@@ -153,7 +153,7 @@ class PIDController:
 
 class HydroflyState:
     'Class to Hold and Calc. State Variables'
-    def __init__(self, serialPort, datafile):
+    def __init__(self, serialPort, adc, gain, datafile):
         self.datafile = datafile
         self.theTime_prev = time.time()
         self.position_prev = [0,0,0]
@@ -171,8 +171,9 @@ class HydroflyState:
         self.velocity = [0,0,0]
         self.position = [0,0,0]
         self.orientation = [0,0,0]
-        self.height_corr = self.initialization(serialPort)
-       
+        self.height_corr = self.us_initialization(serialPort)
+        self.press_corr = self.press_initialization(adc, gain)
+
         self.solenoid_state = False # solenoid status
         self.solenoid_time = self.theTime_prev # last time solenoid was opened or closed 
         self.mass_tot = mass_dry + mass_water
@@ -183,7 +184,7 @@ class HydroflyState:
         self.pressure_model = [0,0,0] #calculated later by pv=nrt
 
 
-    def initialization(self, serialPort):
+    def us_initialization(self, serialPort):
         print("Running Ultrasonic Sensor ",10, " times.")
         height_corr =0
         for x in range(0, 9):
@@ -192,6 +193,20 @@ class HydroflyState:
         print("Height At Initilization: ", height_corr)
         return height_corr
 
+    def press_initialization(self, adc, gain):
+        print("Running Pressure Sensor ",10, " times.")
+        press_corr = [0,0,0]
+        for x in range(0, 9):
+            press_corr[0] += utils.volt_to_pressure(utils.val_to_volt(adc.read_adc(0, gain), gain))
+            press_corr[1] += utils.volt_to_pressure(utils.val_to_volt(adc.read_adc(0, gain), gain))
+            press_corr[2] += utils.volt_to_pressure(utils.val_to_volt(adc.read_adc(0, gain), gain))
+
+        press_corr[0] = 14.47 - (press_corr[0]/10)
+        press_corr[1] = 14.47 - (press_corr[1]/10)
+        press_corr[2] = 14.47 - (press_corr[2]/10)
+        return press_corr
+
+
 
     def update_state(self, adc, gain, serialPort, TheVehicle):
         while (self.terminator[0]==0 or self.terminator[1]==0):
@@ -199,9 +214,9 @@ class HydroflyState:
             dt = time.time() - self.theTime_prev
             self.flight_mode = TheVehicle.flight_mode
 
-            self.pressure[0] = utils.volt_to_pressure(utils.val_to_volt(adc.read_adc(0, gain), gain))
-            self.pressure[1] = utils.volt_to_pressure(utils.val_to_volt(adc.read_adc(1, gain), gain))
-            self.pressure[2] = utils.volt_to_pressure(utils.val_to_volt(adc.read_adc(2, gain), gain))
+            self.pressure[0] = utils.volt_to_pressure(utils.val_to_volt(adc.read_adc(0, gain), gain)) + self.press_corr[0]
+            self.pressure[1] = utils.volt_to_pressure(utils.val_to_volt(adc.read_adc(1, gain), gain)) + self.press_corr[1] 
+            self.pressure[2] = utils.volt_to_pressure(utils.val_to_volt(adc.read_adc(2, gain), gain)) + self.press_corr[2]
 
             self.mass_water_model -= m_dot_max * dt * self.solenoid_state
             mass_tot_new = self.mass_tot - m_dot_max * dt * self.solenoid_state
