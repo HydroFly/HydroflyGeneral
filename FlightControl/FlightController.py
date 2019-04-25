@@ -26,8 +26,9 @@ print("\t 0_ Sensor Data")
 print("\t 1_ TestMode: simulation.")
 print("\t 2_ TestMOde: Static Thrust Test \n")
 
-TEST_MODE = int(input("Enter Mode Number: "))
-#TEST_MODE=0
+#TEST_MODE = int(input("Enter Mode Number: "))
+
+TEST_MODE=2
 
 class HydroflyVehicle:
     def __init__(self,openedFile): #load a spec sheet instead? #also create with pointer to state?

@@ -30,6 +30,11 @@ GPIO.setup(gpio23, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 gpio21 = 40 #launch then softkill
 GPIO.setup(gpio21, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 
+gpio22 = 15 #launch then softkill for relay
+GPIO.setup(gpio22, GPIO.IN, pull_up_down = GPIO.PUD_UP)
+
+
+
 def interrupt_handler(channel):
 #put all of the check before if statement?
     print("IH: Interrupt detected on pin: ", channel)
@@ -50,11 +55,24 @@ def interrupt_handler(channel):
                 CurrentState.terminator[1] = 1
             else:
                 SwitchArmed = 1
+        elif (channel == gpio22):
+            print("Interrupt exception: ", channel)
+            global SwitchArmed
+            if(SwitchArmed ==1):
+                #figure out softkill
+                pass
+                #CurrentState.terminator[0] = 1
+                #CurrentState.terminator[1] = 1
+            else:
+                SwitchArmed = 1
+
 
 #load GPIO event detections
 def loadeventdetection():
     GPIO.add_event_detect(gpio23, GPIO.FALLING, callback=interrupt_handler, bouncetime=20)
     GPIO.add_event_detect(gpio21, GPIO.FALLING, callback=interrupt_handler, bouncetime=20)
+    GPIO.add_event_detect(gpio22, GPIO.FALLING, callback=interrupt_handler, bouncetime=20)
+
     print("Event Detection loaded. (Interrupts)")
 loadeventdetection()
 
