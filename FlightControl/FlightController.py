@@ -221,9 +221,9 @@ class HydroflyState:
             dt = time.time() - self.theTime_prev
             self.flight_mode = TheVehicle.flight_mode
 
-            self.pressure[0] = utils.volt_to_pressure(utils.val_to_volt(adc.read_adc(0, gain), gain)) + self.press_corr[0]
-            self.pressure[1] = utils.volt_to_pressure(utils.val_to_volt(adc.read_adc(1, gain), gain)) + self.press_corr[1] 
-            self.pressure[2] = utils.volt_to_pressure(utils.val_to_volt(adc.read_adc(2, gain), gain)) + self.press_corr[2]
+            self.pressure[0] = utils.volt_to_pressure(utils.val_to_volt(adc.read_adc(0, gain), gain)) 
+            self.pressure[1] = utils.volt_to_pressure(utils.val_to_volt(adc.read_adc(1, gain), gain))  
+            self.pressure[2] = utils.volt_to_pressure(utils.val_to_volt(adc.read_adc(2, gain), gain)) 
 
             self.mass_water_model -= m_dot_max * dt * self.solenoid_state
             mass_tot_new = self.mass_tot - m_dot_max * dt * self.solenoid_state
