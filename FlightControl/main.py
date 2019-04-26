@@ -24,6 +24,9 @@ GPIO.setmode(GPIO.BOARD)
 gpio27 = 13 #solenoid
 GPIO.setup(gpio27, GPIO.OUT, initial=GPIO.LOW)
 
+#gpio27 = 13 #READY LED
+#GPIO.setup(gpio27, GPIO.OUT, initial=GPIO.LOW)
+
 gpio23 = 16 #softkill
 GPIO.setup(gpio23, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 
@@ -90,7 +93,8 @@ maxMM = 0
 
 ### Create the File Name 
 d=datetime.datetime.now()
-path= os.getcwd()+"/data/"
+#path= os.getcwd()+"/data/"
+path="/home/pi/Hydrofly/FlightControl/data/"
 filename= "data_"+str(d.month)+"_"+str(d.day)+"_"+str(d.hour)+"_"+str(d.minute)+".csv"
 #open the file
 datafile = open(path+filename,"w+")
@@ -106,6 +110,10 @@ print("State and Vehicle Objects Created")
 SwitchArmed = 0
 Armed = 0
 
+#
+#GPIO.output(gpio27, CurrentState.solenoid_state)
+#sleep(0.5)
+#GPIO.output(gpio27, CurrentState.solenoid_state)
 print("Out of Initialization Phase")
 sleep(0.5)
 
@@ -121,6 +129,25 @@ UpdateState_t1.start()
 check_state_t2.start()
 print("Threads Started")
 sleep(0.5)
+
+"""
+if (TheVehicle.testmode == 3):
+    ref_time = time.time()
+    while(time.time() < (ref_time + 3)):
+        TheVehicle.solenoid_state = 1
+        GPIO.output(gpio27, CurrentState.solenoid_state)
+        print("MN: FlightMode: ", TheVehicle.flight_mode, "Height: ", CurrentState.position[2], "solenoid_state:", CurrentState.solenoid_state )
+
+    print("OUT OF LOOP")
+    TheVehicle.abort(CurrentState)
+    GPIO.output(gpio27, CurrentState.solenoid_state)
+    while (True):
+        if (sum(CurrentState.terminator) == 2):
+            sleep(0.5) #let all threads finish
+            datafile.close()
+            break
+
+"""
 
 while(TheVehicle.flight_mode == 0):
     print("System Currently Unarmed. Press Button to Arm when Ready.", CurrentState.terminator)
@@ -168,4 +195,4 @@ while (True):
         sleep(0.5) #let all threads finish
         datafile.close()
         break
-
+exit()

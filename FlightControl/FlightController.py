@@ -24,7 +24,8 @@ actuation_delay = 0.1 #Thomas's 100ms delay :3
 print("\t *** Select Mode: ***")
 print("\t 0_ Sensor Data")
 print("\t 1_ TestMode: simulation.")
-print("\t 2_ TestMOde: Static Thrust Test \n")
+print("\t 2_ TestMOde: Static Thrust Test")
+print("\t 3_ OPEN VALVE - future \n")
 
 #TEST_MODE = int(input("Enter Mode Number: "))
 
@@ -52,6 +53,7 @@ class HydroflyVehicle:
 
         self.solenoid_change_time = 0 # last time solenoid valve condition changed
         self.solenoid_delay = .1 #(s) 100ms: time for solenoid to open or close
+        self.testmode = 3
 
     def run(self, State):
         if State.time_start == 0:
@@ -99,6 +101,10 @@ class HydroflyVehicle:
 
     def abort(self, State): #later, let mode controller set terminator function. This will only close valve and prepare shutdown
         print("Aborting! Setting terminator[0] = 1 and locking solenoid valve")
+        if (TEST_MODE == 2):
+            time.sleep(10)
+            #State.terminator[1] = 0 #cuz it's necessary
+            
         State.terminator[0] = 1
         State.solenoid_state = False
         #mode_controller(4)
